@@ -1,28 +1,21 @@
 import sys
-import json
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QListWidget, QListWidgetItem, QMessageBox
-import pandas as pd
-import matplotlib.pyplot as plt
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QListWidget, QListWidgetItem, QMessageBox, QTabWidget, QTextEdit
 
 class FinanceTrackerApp(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.setWindowTitle('Personal Finance Tracker')
+        self.setGeometry(100, 100, 800, 600)
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle('Personal Finance Tracker')
-        self.setGeometry(100, 100, 1000, 800)
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
 
-        # Create main widget and layout
-        main_widget = QWidget(self)
-        self.setCentralWidget(main_widget)
-        main_layout = QVBoxLayout(main_widget)
+        # Create a tab widget
+        self.tab_widget = QTabWidget()
 
-        # Tabs for different sections
-        self.tab_widget = QWidget()
-        main_layout.addWidget(self.tab_widget)
-
-        # Create tabs for each financial section
+        # Create tabs
         self.create_income_tab()
         self.create_expense_tab()
         self.create_investment_tab()
@@ -34,27 +27,28 @@ class FinanceTrackerApp(QMainWindow):
         self.create_trends_analysis_tab()
         self.create_documentation_tab()
 
-        # Load initial data
-        self.load_data()
+        # Set tab widget as central widget
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(self.tab_widget)
+        self.central_widget.setLayout(main_layout)
 
     def create_income_tab(self):
         income_tab = QWidget()
         layout = QVBoxLayout()
 
-        # Income section
         income_label = QLabel('Income Section')
         layout.addWidget(income_label)
 
         self.income_list = QListWidget()
         layout.addWidget(self.income_list)
 
-        # Input fields for adding income
+        # Input fields for adding income data
         income_form_layout = QHBoxLayout()
         self.income_date_edit = QLineEdit()
         self.income_source_edit = QLineEdit()
         self.income_amount_edit = QLineEdit()
         self.income_notes_edit = QLineEdit()
-        add_income_button = QPushButton('Add Income')
+        add_income_button = QPushButton('Add Income Data')
         add_income_button.clicked.connect(self.add_income)
         income_form_layout.addWidget(QLabel('Date:'))
         income_form_layout.addWidget(self.income_date_edit)
@@ -74,20 +68,19 @@ class FinanceTrackerApp(QMainWindow):
         expense_tab = QWidget()
         layout = QVBoxLayout()
 
-        # Expense section
         expense_label = QLabel('Expense Section')
         layout.addWidget(expense_label)
 
         self.expense_list = QListWidget()
         layout.addWidget(self.expense_list)
 
-        # Input fields for adding expenses
+        # Input fields for adding expense data
         expense_form_layout = QHBoxLayout()
         self.expense_date_edit = QLineEdit()
         self.expense_category_edit = QLineEdit()
         self.expense_amount_edit = QLineEdit()
         self.expense_notes_edit = QLineEdit()
-        add_expense_button = QPushButton('Add Expense')
+        add_expense_button = QPushButton('Add Expense Data')
         add_expense_button.clicked.connect(self.add_expense)
         expense_form_layout.addWidget(QLabel('Date:'))
         expense_form_layout.addWidget(self.expense_date_edit)
@@ -107,21 +100,20 @@ class FinanceTrackerApp(QMainWindow):
         investment_tab = QWidget()
         layout = QVBoxLayout()
 
-        # Investment section
         investment_label = QLabel('Investment Section')
         layout.addWidget(investment_label)
 
         self.investment_list = QListWidget()
         layout.addWidget(self.investment_list)
 
-        # Input fields for adding investments
+        # Input fields for adding investment data
         investment_form_layout = QHBoxLayout()
         self.investment_date_edit = QLineEdit()
         self.investment_type_edit = QLineEdit()
         self.investment_purchase_edit = QLineEdit()
         self.investment_current_edit = QLineEdit()
         self.investment_returns_edit = QLineEdit()
-        add_investment_button = QPushButton('Add Investment')
+        add_investment_button = QPushButton('Add Investment Data')
         add_investment_button.clicked.connect(self.add_investment)
         investment_form_layout.addWidget(QLabel('Date:'))
         investment_form_layout.addWidget(self.investment_date_edit)
@@ -131,7 +123,7 @@ class FinanceTrackerApp(QMainWindow):
         investment_form_layout.addWidget(self.investment_purchase_edit)
         investment_form_layout.addWidget(QLabel('Current Value:'))
         investment_form_layout.addWidget(self.investment_current_edit)
-        investment_form_layout.addWidget(QLabel('Returns:'))
+        investment_form_layout.addWidget(QLabel('Returns (%):'))
         investment_form_layout.addWidget(self.investment_returns_edit)
         investment_form_layout.addWidget(add_investment_button)
         layout.addLayout(investment_form_layout)
@@ -143,20 +135,19 @@ class FinanceTrackerApp(QMainWindow):
         retirement_tab = QWidget()
         layout = QVBoxLayout()
 
-        # Retirement section
         retirement_label = QLabel('Retirement Section')
         layout.addWidget(retirement_label)
 
         self.retirement_list = QListWidget()
         layout.addWidget(self.retirement_list)
 
-        # Input fields for adding retirement info
+        # Input fields for adding retirement data
         retirement_form_layout = QHBoxLayout()
         self.retirement_account_edit = QLineEdit()
         self.retirement_contributions_edit = QLineEdit()
         self.retirement_current_edit = QLineEdit()
         self.retirement_growth_edit = QLineEdit()
-        add_retirement_button = QPushButton('Add Retirement Info')
+        add_retirement_button = QPushButton('Add Retirement Data')
         add_retirement_button.clicked.connect(self.add_retirement)
         retirement_form_layout.addWidget(QLabel('Account:'))
         retirement_form_layout.addWidget(self.retirement_account_edit)
@@ -164,7 +155,7 @@ class FinanceTrackerApp(QMainWindow):
         retirement_form_layout.addWidget(self.retirement_contributions_edit)
         retirement_form_layout.addWidget(QLabel('Current Balance:'))
         retirement_form_layout.addWidget(self.retirement_current_edit)
-        retirement_form_layout.addWidget(QLabel('Projected Growth:'))
+        retirement_form_layout.addWidget(QLabel('Projected Growth (%):'))
         retirement_form_layout.addWidget(self.retirement_growth_edit)
         retirement_form_layout.addWidget(add_retirement_button)
         layout.addLayout(retirement_form_layout)
@@ -176,20 +167,19 @@ class FinanceTrackerApp(QMainWindow):
         tax_tab = QWidget()
         layout = QVBoxLayout()
 
-        # Tax section
         tax_label = QLabel('Tax Section')
         layout.addWidget(tax_label)
 
         self.tax_list = QListWidget()
         layout.addWidget(self.tax_list)
 
-        # Input fields for adding tax info
+        # Input fields for adding tax data
         tax_form_layout = QHBoxLayout()
         self.tax_date_edit = QLineEdit()
         self.tax_type_edit = QLineEdit()
         self.tax_amount_edit = QLineEdit()
         self.tax_notes_edit = QLineEdit()
-        add_tax_button = QPushButton('Add Tax Info')
+        add_tax_button = QPushButton('Add Tax Data')
         add_tax_button.clicked.connect(self.add_tax)
         tax_form_layout.addWidget(QLabel('Date:'))
         tax_form_layout.addWidget(self.tax_date_edit)
@@ -209,21 +199,20 @@ class FinanceTrackerApp(QMainWindow):
         rental_income_tab = QWidget()
         layout = QVBoxLayout()
 
-        # Rental income section
         rental_income_label = QLabel('Rental Income Section')
         layout.addWidget(rental_income_label)
 
         self.rental_income_list = QListWidget()
         layout.addWidget(self.rental_income_list)
 
-        # Input fields for adding rental income
+        # Input fields for adding rental income data
         rental_income_form_layout = QHBoxLayout()
         self.rental_income_date_edit = QLineEdit()
         self.rental_income_property_edit = QLineEdit()
         self.rental_income_income_edit = QLineEdit()
         self.rental_income_expenses_edit = QLineEdit()
         self.rental_income_net_edit = QLineEdit()
-        add_rental_income_button = QPushButton('Add Rental Income')
+        add_rental_income_button = QPushButton('Add Rental Income Data')
         add_rental_income_button.clicked.connect(self.add_rental_income)
         rental_income_form_layout.addWidget(QLabel('Date:'))
         rental_income_form_layout.addWidget(self.rental_income_date_edit)
@@ -245,7 +234,6 @@ class FinanceTrackerApp(QMainWindow):
         cash_flow_tab = QWidget()
         layout = QVBoxLayout()
 
-        # Cash flow section
         cash_flow_label = QLabel('Cash Flow Section')
         layout.addWidget(cash_flow_label)
 
@@ -278,23 +266,22 @@ class FinanceTrackerApp(QMainWindow):
         goals_tab = QWidget()
         layout = QVBoxLayout()
 
-        # Goals section
         goals_label = QLabel('Goals Section')
         layout.addWidget(goals_label)
 
         self.goals_list = QListWidget()
         layout.addWidget(self.goals_list)
 
-        # Input fields for adding goals
+        # Input fields for adding goals data
         goals_form_layout = QHBoxLayout()
         self.goals_name_edit = QLineEdit()
         self.goals_current_edit = QLineEdit()
         self.goals_target_edit = QLineEdit()
         add_goals_button = QPushButton('Add Goal')
         add_goals_button.clicked.connect(self.add_goal)
-        goals_form_layout.addWidget(QLabel('Name:'))
+        goals_form_layout.addWidget(QLabel('Goal:'))
         goals_form_layout.addWidget(self.goals_name_edit)
-        goals_form_layout.addWidget(QLabel('Current Balance:'))
+        goals_form_layout.addWidget(QLabel('Current Amount:'))
         goals_form_layout.addWidget(self.goals_current_edit)
         goals_form_layout.addWidget(QLabel('Target Amount:'))
         goals_form_layout.addWidget(self.goals_target_edit)
@@ -308,91 +295,97 @@ class FinanceTrackerApp(QMainWindow):
         trends_analysis_tab = QWidget()
         layout = QVBoxLayout()
 
-        # Trends and analysis section
-        trends_label = QLabel('Trends and Analysis')
-        layout.addWidget(trends_label)
+        trends_analysis_label = QLabel('Trends and Analysis Section')
+        layout.addWidget(trends_analysis_label)
 
-        # Charts for visualization
-        self.income_chart_button = QPushButton('Show Income Trends')
-        self.income_chart_button.clicked.connect(self.show_income_trends)
-        layout.addWidget(self.income_chart_button)
-
-        self.expense_chart_button = QPushButton('Show Expense Breakdown')
-        self.expense_chart_button.clicked.connect(self.show_expense_breakdown)
-        layout.addWidget(self.expense_chart_button)
-
-        self.investment_chart_button = QPushButton('Show Investment Growth')
-        self.investment_chart_button.clicked.connect(self.show_investment_growth)
-        layout.addWidget(self.investment_chart_button)
-
-        self.net_worth_chart_button = QPushButton('Show Net Worth Over Time')
-        self.net_worth_chart_button.clicked.connect(self.show_net_worth)
-        layout.addWidget(self.net_worth_chart_button)
+        # Placeholder for trends and analysis data display (to be implemented)
+        trends_analysis_text_edit = QTextEdit()
+        trends_analysis_text_edit.setPlainText('Placeholder for trends and analysis data display')
+        layout.addWidget(trends_analysis_text_edit)
 
         trends_analysis_tab.setLayout(layout)
-        self.tab_widget.addTab(trends_analysis_tab, 'Trends & Analysis')
+        self.tab_widget.addTab(trends_analysis_tab, 'Trends and Analysis')
 
     def create_documentation_tab(self):
         documentation_tab = QWidget()
         layout = QVBoxLayout()
 
-        # Documentation section
-        documentation_label = QLabel('Documentation and Notes')
+        documentation_label = QLabel('Documentation and Notes Section')
         layout.addWidget(documentation_label)
 
-        self.documentation_notes_edit = QTextEdit()
-        layout.addWidget(self.documentation_notes_edit)
+        # Placeholder for documentation and notes (to be implemented)
+        documentation_text_edit = QTextEdit()
+        documentation_text_edit.setPlainText('Placeholder for documentation and notes')
+        layout.addWidget(documentation_text_edit)
 
         documentation_tab.setLayout(layout)
         self.tab_widget.addTab(documentation_tab, 'Documentation')
 
     def add_income(self):
-        # Retrieve input values
+        # Retrieve data from input fields
         date = self.income_date_edit.text()
         source = self.income_source_edit.text()
         amount = self.income_amount_edit.text()
         notes = self.income_notes_edit.text()
 
+        # Validate input (add validation logic as needed)
+
         # Add to list widget
-        item = QListWidgetItem(f"{date}: {source} - ${amount} ({notes})")
+        item_text = f"{date}: {source} - ${amount} ({notes})"
+        item = QListWidgetItem(item_text)
         self.income_list.addItem(item)
 
-        # Clear input fields
+        # Clear input fields after adding
+        self.clear_income_fields()
+
+    def clear_income_fields(self):
         self.income_date_edit.clear()
         self.income_source_edit.clear()
         self.income_amount_edit.clear()
         self.income_notes_edit.clear()
 
     def add_expense(self):
-        # Retrieve input values
+        # Retrieve data from input fields
         date = self.expense_date_edit.text()
         category = self.expense_category_edit.text()
         amount = self.expense_amount_edit.text()
         notes = self.expense_notes_edit.text()
 
+        # Validate input (add validation logic as needed)
+
         # Add to list widget
-        item = QListWidgetItem(f"{date}: {category} - ${amount} ({notes})")
+        item_text = f"{date}: {category} - ${amount} ({notes})"
+        item = QListWidgetItem(item_text)
         self.expense_list.addItem(item)
 
-        # Clear input fields
+        # Clear input fields after adding
+        self.clear_expense_fields()
+
+    def clear_expense_fields(self):
         self.expense_date_edit.clear()
         self.expense_category_edit.clear()
         self.expense_amount_edit.clear()
         self.expense_notes_edit.clear()
 
     def add_investment(self):
-        # Retrieve input values
+        # Retrieve data from input fields
         date = self.investment_date_edit.text()
         investment_type = self.investment_type_edit.text()
         purchase_price = self.investment_purchase_edit.text()
         current_value = self.investment_current_edit.text()
         returns = self.investment_returns_edit.text()
 
+        # Validate input (add validation logic as needed)
+
         # Add to list widget
-        item = QListWidgetItem(f"{date}: {investment_type} - Purchase: ${purchase_price}, Current: ${current_value}, Returns: {returns}%")
+        item_text = f"{date}: {investment_type} - Purchased: ${purchase_price}, Current Value: ${current_value}, Returns: {returns}%"
+        item = QListWidgetItem(item_text)
         self.investment_list.addItem(item)
 
-        # Clear input fields
+        # Clear input fields after adding
+        self.clear_investment_fields()
+
+    def clear_investment_fields(self):
         self.investment_date_edit.clear()
         self.investment_type_edit.clear()
         self.investment_purchase_edit.clear()
@@ -400,52 +393,70 @@ class FinanceTrackerApp(QMainWindow):
         self.investment_returns_edit.clear()
 
     def add_retirement(self):
-        # Retrieve input values
+        # Retrieve data from input fields
         account = self.retirement_account_edit.text()
         contributions = self.retirement_contributions_edit.text()
         current_balance = self.retirement_current_edit.text()
         projected_growth = self.retirement_growth_edit.text()
 
+        # Validate input (add validation logic as needed)
+
         # Add to list widget
-        item = QListWidgetItem(f"{account}: Contributions - ${contributions}, Current Balance - ${current_balance}, Projected Growth - {projected_growth}%")
+        item_text = f"{account}: Contributions - ${contributions}, Current Balance - ${current_balance}, Projected Growth - {projected_growth}%"
+        item = QListWidgetItem(item_text)
         self.retirement_list.addItem(item)
 
-        # Clear input fields
+        # Clear input fields after adding
+        self.clear_retirement_fields()
+
+    def clear_retirement_fields(self):
         self.retirement_account_edit.clear()
         self.retirement_contributions_edit.clear()
         self.retirement_current_edit.clear()
         self.retirement_growth_edit.clear()
 
     def add_tax(self):
-        # Retrieve input values
+        # Retrieve data from input fields
         date = self.tax_date_edit.text()
         tax_type = self.tax_type_edit.text()
         amount = self.tax_amount_edit.text()
         notes = self.tax_notes_edit.text()
 
+        # Validate input (add validation logic as needed)
+
         # Add to list widget
-        item = QListWidgetItem(f"{date}: {tax_type} - ${amount} ({notes})")
+        item_text = f"{date}: {tax_type} - ${amount} ({notes})"
+        item = QListWidgetItem(item_text)
         self.tax_list.addItem(item)
 
-        # Clear input fields
+        # Clear input fields after adding
+        self.clear_tax_fields()
+
+    def clear_tax_fields(self):
         self.tax_date_edit.clear()
         self.tax_type_edit.clear()
         self.tax_amount_edit.clear()
         self.tax_notes_edit.clear()
 
     def add_rental_income(self):
-        # Retrieve input values
+        # Retrieve data from input fields
         date = self.rental_income_date_edit.text()
         property_address = self.rental_income_property_edit.text()
         rental_income = self.rental_income_income_edit.text()
         expenses = self.rental_income_expenses_edit.text()
         net_income = self.rental_income_net_edit.text()
 
+        # Validate input (add validation logic as needed)
+
         # Add to list widget
-        item = QListWidgetItem(f"{date}: {property_address} - Rental Income: ${rental_income}, Expenses: ${expenses}, Net Income: ${net_income}")
+        item_text = f"{date}: {property_address} - Income: ${rental_income}, Expenses: ${expenses}, Net Income: ${net_income}"
+        item = QListWidgetItem(item_text)
         self.rental_income_list.addItem(item)
 
-        # Clear input fields
+        # Clear input fields after adding
+        self.clear_rental_income_fields()
+
+    def clear_rental_income_fields(self):
         self.rental_income_date_edit.clear()
         self.rental_income_property_edit.clear()
         self.rental_income_income_edit.clear()
@@ -453,66 +464,48 @@ class FinanceTrackerApp(QMainWindow):
         self.rental_income_net_edit.clear()
 
     def add_cash_flow(self):
-        # Retrieve input values
+        # Retrieve data from input fields
         date = self.cash_flow_date_edit.text()
         income = self.cash_flow_income_edit.text()
         expenses = self.cash_flow_expenses_edit.text()
         net_cash_flow = self.cash_flow_net_edit.text()
 
+        # Validate input (add validation logic as needed)
+
         # Add to list widget
-        item = QListWidgetItem(f"{date}: Income - ${income}, Expenses - ${expenses}, Net Cash Flow - ${net_cash_flow}")
+        item_text = f"{date}: Income - ${income}, Expenses - ${expenses}, Net Cash Flow - ${net_cash_flow}"
+        item = QListWidgetItem(item_text)
         self.cash_flow_list.addItem(item)
 
-        # Clear input fields
+        # Clear input fields after adding
+        self.clear_cash_flow_fields()
+
+    def clear_cash_flow_fields(self):
         self.cash_flow_date_edit.clear()
         self.cash_flow_income_edit.clear()
         self.cash_flow_expenses_edit.clear()
         self.cash_flow_net_edit.clear()
 
     def add_goal(self):
-        # Retrieve input values
+        # Retrieve data from input fields
         name = self.goals_name_edit.text()
-        current_balance = self.goals_current_edit.text()
+        current_amount = self.goals_current_edit.text()
         target_amount = self.goals_target_edit.text()
 
+        # Validate input (add validation logic as needed)
+
         # Add to list widget
-        item = QListWidgetItem(f"{name}: Current Balance - ${current_balance}, Target Amount - ${target_amount}")
+        item_text = f"Goal: {name}, Current Amount: ${current_amount}, Target Amount: ${target_amount}"
+        item = QListWidgetItem(item_text)
         self.goals_list.addItem(item)
 
-        # Clear input fields
+        # Clear input fields after adding
+        self.clear_goal_fields()
+
+    def clear_goal_fields(self):
         self.goals_name_edit.clear()
         self.goals_current_edit.clear()
         self.goals_target_edit.clear()
-
-    def show_income_trends(self):
-        # Placeholder function for showing income trends (to be implemented)
-        self.show_message_box('Income Trends', 'Functionality under development.')
-
-    def show_expense_breakdown(self):
-        # Placeholder function for showing expense breakdown (to be implemented)
-        self.show_message_box('Expense Breakdown', 'Functionality under development.')
-
-    def show_investment_growth(self):
-        # Placeholder function for showing investment growth (to be implemented)
-        self.show_message_box('Investment Growth', 'Functionality under development.')
-
-    def show_net_worth(self):
-        # Placeholder function for showing net worth over time (to be implemented)
-        self.show_message_box('Net Worth Over Time', 'Functionality under development.')
-
-    def show_message_box(self, title, message):
-        msg_box = QMessageBox()
-        msg_box.setWindowTitle(title)
-        msg_box.setText(message)
-        msg_box.exec_()
-
-    def load_data(self):
-        # Placeholder function for loading data (to be implemented)
-        pass
-
-    def save_data(self):
-        # Placeholder function for saving data (to be implemented)
-        pass
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
