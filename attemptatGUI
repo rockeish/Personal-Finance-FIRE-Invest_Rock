@@ -1,0 +1,139 @@
+import sys
+import json
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QListWidget, QListWidgetItem, QMessageBox
+
+class FinanceTrackerApp(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle('Personal Finance Tracker')
+        self.setGeometry(100, 100, 800, 600)
+
+        # Create main widget and layout
+        main_widget = QWidget(self)
+        self.setCentralWidget(main_widget)
+        main_layout = QVBoxLayout(main_widget)
+
+        # Income tracking section
+        income_label = QLabel('Income Tracking')
+        main_layout.addWidget(income_label)
+
+        # Input fields for income tracking
+        income_form_layout = QHBoxLayout()
+        self.income_source_edit = QLineEdit()
+        self.income_amount_edit = QLineEdit()
+        add_income_button = QPushButton('Add Income')
+        add_income_button.clicked.connect(self.add_income)
+        income_form_layout.addWidget(QLabel('Source:'))
+        income_form_layout.addWidget(self.income_source_edit)
+        income_form_layout.addWidget(QLabel('Amount:'))
+        income_form_layout.addWidget(self.income_amount_edit)
+        income_form_layout.addWidget(add_income_button)
+        main_layout.addLayout(income_form_layout)
+
+        # List to display income entries
+        self.income_list = QListWidget()
+        main_layout.addWidget(self.income_list)
+
+        # Buttons for deleting income entries
+        delete_income_button = QPushButton('Delete Selected Income')
+        delete_income_button.clicked.connect(self.delete_income)
+        main_layout.addWidget(delete_income_button)
+
+        # Load initial data
+        self.load_data()
+
+    def load_data(self):
+        try:
+            with open('finance_data.json', 'r') as file:
+                data = json.load(file)
+        except FileNotFoundError:
+            data = []
+        
+        self.update_income_list(data)
+
+    def update_income_list(self, data):
+        self.income_list.clear()
+        for entry in data:
+            item_text = f"{entry['source']}: ${entry['amount']:.2f}"
+            item = QListWidgetItem(item_text)
+            item.entry_data = entry  # Attach data to the list item
+            self.income_list.addItem(item)
+
+    def add_income(self):
+        income_source = self.income_source_edit.text()
+        income_amount_text = self.income_amount_edit.text()
+        
+        if income_source and income_amount_text:
+            try:
+                income_amount = float(income_amount_text)
+                if income_amount <= 0:
+                    raise ValueError("Income amount must be greater than zero.")
+
+                # Load existing data or create new list
+                try:
+                    with open('finance_data.json', 'r') as file:
+                        data = json.load(file)
+                except FileNotFoundError:
+                    data = []
+
+                # Add new income entry
+                new_entry = {'source': income_source, 'amount': income_amount}
+                data.append(new_entry)
+
+                # Save updated data to JSON file
+                with open('finance_data.json', 'w') as file:
+                    json.dump(data, file, indent=4)
+
+                # Update list widget and clear input fields
+                self.update_income_list(data)
+                self.income_source_edit.clear()
+                self.income_amount_edit.clear()
+
+            except ValueError as e:
+                self.show_message_box('Error', str(e))
+        else:
+            self.show_message_box('Error', 'Please enter both income source and amount.')
+
+    def delete_income(self):
+        selected_items = self.income_list.selectedItems()
+        if not selected_items:
+            self.show_message_box('Error', 'Please select an income entry to delete.')
+            return
+        
+        confirm_dialog = QMessageBox.question(self, 'Delete Confirmation', 'Are you sure you want to delete the selected income entry?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        
+        if confirm_dialog == QMessageBox.Yes:
+            selected_item = selected_items[0]
+            entry_data = selected_item.entry_data
+            
+            try:
+                with open('finance_data.json', 'r') as file:
+                    data = json.load(file)
+            except FileNotFoundError:
+                data = []
+
+            # Remove selected entry from data
+            data.remove(entry_data)
+
+            # Save updated data to JSON file
+            with open('finance_data.json', 'w') as file:
+                json.dump(data, file, indent=4)
+
+            # Update list widget
+            self.update_income_list(data)
+
+    def show_message_box(self, title, message):
+        msg_box = QMessageBox()
+        msg_box.setWindowTitle(title)
+        msg_box.setText(message)
+        msg_box.exec()
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    app.setStyle('Fusion')  # Optional: set Fusion style
+    window = FinanceTrackerApp()
+    window.show()
+    sys.exit(app.exec_())
