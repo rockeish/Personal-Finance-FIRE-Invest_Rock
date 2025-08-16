@@ -884,17 +884,61 @@
                     });
                 }
 
+                function loadSavedData() {
+                    const savedDataJSON = localStorage.getItem('atlasBudget');
+                    if (!savedDataJSON) return;
+
+                    try {
+                        const savedData = JSON.parse(savedDataJSON);
+                        let hasValues = false;
+
+                        for (const key in savedData) {
+                            const value = savedData[key];
+                            if (value && key !== 'budgetFor') hasValues = true;
+
+                            const element = budgetForm.elements[key];
+                            if (!element) continue;
+
+                            if (element instanceof RadioNodeList) {
+                                for (const radio of element) {
+                                    if (radio.value === value) {
+                                        radio.checked = true;
+                                        break;
+                                    }
+                                }
+                            } else {
+                                element.value = value;
+                            }
+                        }
+
+                        toggleCoupleMode();
+
+                        if (hasValues) {
+                            budgetForm.dispatchEvent(new Event('submit', { cancelable: true }));
+                        }
+                    } catch (e) {
+                        console.error("Failed to load or parse saved budget data.", e);
+                        localStorage.removeItem('atlasBudget');
+                    }
+                }
+
                 // --- EVENT LISTENERS ---
                 budgetTypeRadios.forEach(radio => radio.addEventListener('change', toggleCoupleMode));
                 budgetForm.addEventListener('submit', (e) => {
                     e.preventDefault();
                     const formData = new FormData(budgetForm);
                     const results = calculateBudget(formData);
+
+                    // Save form data to localStorage for persistence
+                    const dataToSave = Object.fromEntries(formData.entries());
+                    localStorage.setItem('atlasBudget', JSON.stringify(dataToSave));
+
                     displayResults(results);
                 });
 
                 // --- INITIALIZATION ---
                 renderForm();
+                loadSavedData();
             })();
         });
     </script>
