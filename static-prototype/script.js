@@ -48,7 +48,6 @@ const AtlasApp = {
         this.elements.canvas = document.getElementById('budgetChart');
         this.elements.summaryCard = document.getElementById('summaryCard');
         this.elements.insightsCard = document.getElementById('insightsCard');
-        this.elements.rule503020Card = document.getElementById('rule503020Card');
         this.elements.transactionList = document.querySelector('#dashboard .transaction-list');
     },
 
@@ -162,7 +161,6 @@ const AtlasApp = {
     displayResults(results) {
         this.renderSummaryCard(results);
         this.renderInsightsCard(results);
-        this.render503020Rule(results);
         this.renderChart(results.categoryTotals);
 
         this.elements.resultsSection.classList.remove('hidden');
@@ -194,27 +192,6 @@ const AtlasApp = {
             insightsHTML += `<p>Your partner's discretionary spending is <strong>${partnerDiscretionaryPercent}%</strong> of their expenses.</p>`;
         }
         this.elements.insightsCard.innerHTML = `<h3>Financial Insights 💡</h3>${insightsHTML}`;
-    },
-
-    render503020Rule(results) {
-        if (!this.elements.rule503020Card || results.totalIncome <= 0) return;
-
-        const currency = (val) => val.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-        const rule = {
-            needs: results.totalIncome * 0.5,
-            wants: results.totalIncome * 0.3,
-            savings: results.totalIncome * 0.2
-        };
-
-        this.elements.rule503020Card.innerHTML = `
-            <h3>50/30/20 Guideline</h3>
-            <p>Based on your income of ${currency(results.totalIncome)}, here's a suggested budget:</p>
-            <ul>
-                <li><strong>50% Needs:</strong> ${currency(rule.needs)}</li>
-                <li><strong>30% Wants:</strong> ${currency(rule.wants)}</li>
-                <li><strong>20% Savings:</strong> ${currency(rule.savings)}</li>
-            </ul>
-        `;
     },
 
     renderChart(categoryData) {
