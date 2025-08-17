@@ -4,7 +4,444 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Atlas Financial - Dashboard</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+    /* --- Global Styles & Variables --- */
+    :root {
+        --primary-color: #0052CC; /* Atlas Blue */
+        --secondary-color: #36B37E; /* Success Green */
+        --alert-color: #FF5630; /* Warning Orange */
+        --text-primary: #172B4D;
+        --text-secondary: #5E6C84;
+        --bg-main: #F4F5F7;
+        --bg-widget: #FFFFFF;
+        --border-color: #DFE1E6;
+        --shadow: 0px 4px 8px rgba(23, 43, 77, 0.07);
+    }
+
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    body {
+        font-family: 'Inter', sans-serif;
+        margin: 0;
+        background-color: var(--bg-main);
+        color: var(--text-primary);
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    /* --- Sidebar Navigation --- */
+    .sidebar {
+        width: 240px;
+        background-color: var(--bg-widget);
+        border-right: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+        padding: 24px;
+        box-sizing: border-box;
+    }
+
+    .sidebar-header {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 32px;
+    }
+
+    .sidebar-nav a {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        margin-bottom: 8px;
+        text-decoration: none;
+        color: var(--text-secondary);
+        font-weight: 500;
+        border-radius: 6px;
+        transition: background-color 0.2s, color 0.2s;
+    }
+
+    .sidebar-nav a:hover {
+        background-color: #EBF2FF;
+    }
+
+    .sidebar-nav a.active {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .sidebar-nav a svg {
+        margin-right: 12px;
+        width: 20px;
+        height: 20px;
+    }
+
+    .user-profile {
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+    }
+    .user-profile img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 12px;
+    }
+    .user-info .name {
+        font-weight: 600;
+    }
+    .user-info .email {
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+
+    /* --- Main Content Area --- */
+    .main-content {
+        flex-grow: 1;
+        padding: 24px 32px;
+        overflow-y: auto;
+    }
+
+    header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    header h1 {
+        font-size: 28px;
+        margin: 0;
+    }
+
+    /* --- Content Pages --- */
+    .page {
+        display: none;
+    }
+    .page.active {
+        display: block;
+    }
+
+    /* --- Grid & Widgets --- */
+    .widget-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+    }
+
+    .widget {
+        background-color: var(--bg-widget);
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border-color);
+    }
+
+    .widget-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .widget-title {
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .widget-content .value {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .widget-content .change {
+        font-weight: 500;
+    }
+
+    .change.positive { color: var(--secondary-color); }
+    .change.negative { color: var(--alert-color); }
+
+    /* --- Specific Widget Styles --- */
+    .progress-bar-container {
+        width: 100%;
+        background-color: #EBECF0;
+        border-radius: 10px;
+        height: 12px;
+        overflow: hidden;
+    }
+    .progress-bar {
+        height: 100%;
+        background-color: var(--primary-color);
+        border-radius: 10px;
+    }
+
+    .goal-item {
+        margin-bottom: 16px;
+    }
+    .goal-item:last-child {
+        margin-bottom: 0;
+    }
+    .goal-info {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+
+    .transaction-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .transaction-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .transaction-item:last-child {
+        border-bottom: none;
+    }
+    .transaction-info .description {
+        font-weight: 500;
+    }
+    .transaction-info .category {
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+    .transaction-amount {
+        font-weight: 600;
+    }
+
+    /* Mock Chart */
+    .chart-container {
+        height: 200px;
+        background: linear-gradient(to top, rgba(0, 82, 204, 0.1), rgba(0, 82, 204, 0));
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        position: relative;
+    }
+    .chart-line {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 120px;
+        background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none'/%3e%3cpath d='M0 80 C40 20, 80 100, 120 60, 160 30, 200 90, 240 50, 280 10, 320 70, 360 40' stroke='%230052CC' stroke-width='3' fill='none' stroke-linecap='round'/%3e%3c/svg%3e");
+        background-size: cover;
+        background-repeat: no-repeat;
+    }
+
+    /* --- Budget Planner Styles --- */
+    #budget .widget { /* Changed from .card to .widget for consistency */
+        background: var(--bg-widget);
+        border-radius: 8px;
+        padding: 25px;
+        margin-bottom: 25px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border-color);
+    }
+
+    #budget fieldset {
+        border: none;
+        padding: 0;
+    }
+
+    #budget fieldset legend {
+        font-size: 18px; /* Match widget-title */
+        font-weight: 600; /* Match widget-title */
+        color: var(--text-primary);
+        margin-bottom: 20px;
+        width: 100%;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border-color); /* Lighter border */
+    }
+
+    #budget .form-group {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 15px;
+    }
+
+    #budget .form-group label {
+        font-weight: 500; /* Slightly less bold */
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+
+    #budget input[type="text"],
+    #budget input[type="number"] {
+        width: 100%;
+        padding: 10px; /* Standardized padding */
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        box-sizing: border-box;
+        font-family: 'Inter', sans-serif;
+        font-size: 14px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    #budget input[type="text"]:focus,
+    #budget input[type="number"]:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.2);
+    }
+
+    #budget .input-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px 24px; /* Adjusted gap */
+    }
+
+    #budget .category-grid .input-grid {
+        align-items: end;
+    }
+
+    #budget .category-title {
+        font-size: 16px;
+        font-weight: 600;
+        margin-top: 20px;
+        margin-bottom: 15px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #eee;
+    }
+
+    #budget .category-grid:first-of-type .category-title {
+        margin-top: 0;
+    }
+
+    #budget .budget-type-selector {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    #budget .budget-type-selector label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    #budget .calculate-btn {
+        display: block;
+        width: 100%;
+        padding: 12px;
+        background-color: var(--primary-color); /* Solid color */
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        transition: background-color 0.2s;
+        margin-top: 10px;
+    }
+
+    #budget .calculate-btn:hover {
+        background-color: #0041A3; /* Darker shade of primary */
+    }
+
+    /* Results Section */
+    #budget #results {
+        margin-top: 30px;
+    }
+
+    #budget #results h2 {
+        font-size: 20px;
+        text-align: center;
+        color: var(--text-primary);
+        margin-bottom: 20px;
+    }
+
+    #budget .results-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* Two columns */
+        gap: 24px;
+    }
+
+    #budget .results-grid h3 {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-top: 0;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+    }
+
+    #budget #summaryCard p {
+        font-size: 14px;
+        display: flex;
+        justify-content: space-between;
+        margin: 12px 0;
+    }
+
+    #budget #summaryCard p span:last-child {
+        font-weight: 600;
+    }
+
+    #budget #summaryCard .surplus {
+        color: var(--secondary-color); /* Use theme color */
+    }
+
+    #budget #summaryCard .deficit {
+        color: var(--alert-color); /* Use theme color */
+    }
+
+    #budget #insightsCard p {
+        font-size: 14px;
+        margin: 12px 0;
+        padding-left: 15px;
+        border-left: 3px solid var(--secondary-color);
+    }
+
+    #budget #rule503020Card p {
+        font-size: 14px;
+        margin: 12px 0;
+    }
+
+    #budget #rule503020Card ul {
+        list-style: none;
+        padding-left: 0;
+        margin-top: 15px;
+        font-size: 14px;
+    }
+
+    #budget #rule503020Card li {
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+    }
+
+
+    #budget #results .chart-container { /* Scoped chart container */
+        min-height: 250px;
+    }
+
+    #budget .hidden {
+        display: none !important;
+    }
+
+    /* Responsive Design */
+    @media (min-width: 768px) {
+        #budget .input-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        #budget .category-grid .input-grid {
+            grid-template-columns: 2fr 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 900px) { /* Better responsive break-point for results */
+        #budget .results-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    </style>
 </head>
 <body>
 
@@ -249,7 +686,371 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="script.js"></script>
+    <script>
+    const AtlasApp = {
+        // --- Configuration ---
+        config: {
+            budget: {
+                "🏡 Housing": ["Mortgage/Rent", "Property Tax", "Repairs"],
+                "💡 Utilities": ["Electricity", "Water", "Gas", "Internet"],
+                "🛒 Food": ["Groceries", "Dining Out"],
+                "🚗 Transportation": ["Car Payment", "Gas/Fuel", "Public Transit", "Insurance"],
+                "⚕️ Healthcare": ["Health Insurance", "Medications", "Appointments"],
+                "👨‍👩‍👧 Personal": ["Clothing", "Education", "Subscriptions", "Hobbies"],
+                "💰 Savings": ["Emergency Fund", "Retirement", "Investments"],
+                "🎉 Entertainment": ["Events", "Streaming", "Vacations"],
+                "🎁 Miscellaneous": ["Gifts", "Donations"]
+            },
+            NECESSARY_CATEGORIES: ["🏡 Housing", "💡 Utilities", "🛒 Food", "🚗 Transportation", "⚕️ Healthcare"]
+        },
+
+        // --- State ---
+        state: {
+            budgetChart: null
+        },
+
+        // --- Cached DOM Elements ---
+        elements: {},
+
+        // --- Initialization ---
+        init() {
+            document.addEventListener('DOMContentLoaded', () => {
+                this.cacheDOMElements();
+                this.setupEventListeners();
+                this.handleNavigation();
+
+                if (this.elements.budgetForm) {
+                    this.renderBudgetForm();
+                    this.loadData();
+                }
+                this.renderTransactions();
+            });
+        },
+
+        cacheDOMElements() {
+            this.elements.navLinks = document.querySelectorAll('.nav-link');
+            this.elements.pages = document.querySelectorAll('.page');
+            this.elements.budgetForm = document.getElementById('budgetForm');
+            this.elements.expensesContainer = document.getElementById('expensesContainer');
+            this.elements.resultsSection = document.getElementById('results');
+            this.elements.budgetTypeRadios = document.querySelectorAll('input[name="budgetFor"]');
+            this.elements.canvas = document.getElementById('budgetChart');
+            this.elements.summaryCard = document.getElementById('summaryCard');
+            this.elements.insightsCard = document.getElementById('insightsCard');
+            this.elements.rule503020Card = document.getElementById('rule503020Card');
+            this.elements.transactionList = document.querySelector('#dashboard .transaction-list');
+        },
+
+        // --- Event Handling ---
+        setupEventListeners() {
+            this.elements.navLinks.forEach(link => {
+                link.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    this.handleNavigation(link.getAttribute('href'));
+                });
+            });
+
+            if (this.elements.budgetForm) {
+                this.elements.budgetTypeRadios.forEach(radio => radio.addEventListener('change', () => this.toggleCoupleMode()));
+                this.elements.budgetForm.addEventListener('submit', (e) => this.handleBudgetSubmit(e));
+            }
+        },
+
+        handleBudgetSubmit(event) {
+            event.preventDefault();
+            const formData = new FormData(this.elements.budgetForm);
+            const dataToSave = Object.fromEntries(formData.entries());
+            const results = this.calculateBudget(dataToSave);
+
+            this.saveData(dataToSave);
+            this.saveTransactions(dataToSave);
+
+            this.displayResults(results);
+            this.renderTransactions();
+        },
+
+        // --- Navigation ---
+        handleNavigation(hash) {
+            const targetId = hash || window.location.hash || '#dashboard';
+            window.location.hash = targetId;
+
+            this.elements.pages.forEach(page => {
+                page.classList.toggle('active', '#' + page.id === targetId);
+            });
+
+            this.elements.navLinks.forEach(navLink => {
+                navLink.classList.toggle('active', navLink.getAttribute('href') === targetId);
+            });
+        },
+
+        // --- Budget Planner ---
+        renderBudgetForm() {
+            if (!this.elements.expensesContainer) return;
+            let html = '';
+            for (const category in this.config.budget) {
+                html += `<div class="category-grid"><h4 class="category-title">${category}</h4>`;
+                this.config.budget[category].forEach(item => {
+                    const id = item.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    html += `
+                        <div class="input-grid">
+                            <label for="${id}">${item}</label>
+                            <div class="form-group user-input">
+                                <input type="number" id="${id}" name="${id}" min="0" step="10" placeholder="$0" data-category="${category}">
+                            </div>
+                            <div class="form-group partner-input hidden">
+                                <input type="number" id="${id}Partner" name="${id}Partner" min="0" step="10" placeholder="$0" data-category="${category}">
+                            </div>
+                        </div>`;
+                });
+                html += `</div>`;
+            }
+            this.elements.expensesContainer.innerHTML = html;
+        },
+
+        toggleCoupleMode() {
+            const isCouple = document.querySelector('input[name="budgetFor"]:checked').value === 'couple';
+            document.querySelectorAll('.partner-input').forEach(el => el.classList.toggle('hidden', !isCouple));
+        },
+
+        calculateBudget(data) {
+            const isCouple = data.budgetFor === 'couple';
+            const results = {
+                user: { income: +data.userIncome || 0, expenses: 0, necessary: 0, discretionary: 0 },
+                partner: { income: +data.partnerIncome || 0, expenses: 0, necessary: 0, discretionary: 0 },
+                categoryTotals: {},
+            };
+
+            for (const key in data) {
+                if (['budgetFor', 'userIncome', 'partnerIncome'].includes(key)) continue;
+                const amount = +data[key] || 0;
+                if (amount === 0) continue;
+
+                const element = this.elements.budgetForm.elements[key];
+                if (!element || !element.dataset) continue;
+
+                const category = element.dataset.category;
+                results.categoryTotals[category] = (results.categoryTotals[category] || 0) + amount;
+                const isNecessary = this.config.NECESSARY_CATEGORIES.includes(category);
+
+                if (key.includes('Partner')) {
+                    results.partner.expenses += amount;
+                    results.partner[isNecessary ? 'necessary' : 'discretionary'] += amount;
+                } else {
+                    results.user.expenses += amount;
+                    results.user[isNecessary ? 'necessary' : 'discretionary'] += amount;
+                }
+            }
+
+            results.totalIncome = results.user.income + (isCouple ? results.partner.income : 0);
+            results.totalExpenses = results.user.expenses + (isCouple ? results.partner.expenses : 0);
+            results.surplus = results.totalIncome - results.totalExpenses;
+            return results;
+        },
+
+        // --- Display & Rendering ---
+        displayResults(results) {
+            this.renderSummaryCard(results);
+            this.renderInsightsCard(results);
+            this.render503020Rule(results);
+            this.renderChart(results.categoryTotals);
+
+            this.elements.resultsSection.classList.remove('hidden');
+            this.elements.resultsSection.scrollIntoView({ behavior: 'smooth' });
+        },
+
+        renderSummaryCard(results) {
+            const currency = (val) => val.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+            this.elements.summaryCard.innerHTML = `
+                <h3>Summary</h3>
+                <p><span>Total Income:</span> <span>${currency(results.totalIncome)}</span></p>
+                <p><span>Total Expenses:</span> <span>${currency(results.totalExpenses)}</span></p>
+                <hr>
+                <p><strong>Final Balance:</strong> <strong class="${results.surplus >= 0 ? 'surplus' : 'deficit'}">${currency(results.surplus)}</strong></p>`;
+        },
+
+        renderInsightsCard(results) {
+            let insightsHTML = '';
+            if (results.surplus > 0) insightsHTML += `<p>Great job! You have a surplus. Consider allocating more to savings or investments.</p>`;
+            else if (results.surplus < 0) insightsHTML += `<p>You're in a deficit. Review your discretionary spending to find areas to cut back.</p>`;
+            else insightsHTML += `<p>Your budget is balanced. Aim to create a surplus for unexpected costs.</p>`;
+
+            const userDiscretionaryPercent = results.user.expenses > 0 ? (results.user.discretionary / results.user.expenses * 100).toFixed(0) : 0;
+            insightsHTML += `<p>Your discretionary spending makes up <strong>${userDiscretionaryPercent}%</strong> of your expenses.</p>`;
+
+            const isCouple = document.querySelector('input[name="budgetFor"]:checked').value === 'couple';
+            if (isCouple && results.partner.expenses > 0) {
+                const partnerDiscretionaryPercent = (results.partner.discretionary / results.partner.expenses * 100).toFixed(0);
+                insightsHTML += `<p>Your partner's discretionary spending is <strong>${partnerDiscretionaryPercent}%</strong> of their expenses.</p>`;
+            }
+            this.elements.insightsCard.innerHTML = `<h3>Financial Insights 💡</h3>${insightsHTML}`;
+        },
+
+        render503020Rule(results) {
+            if (!this.elements.rule503020Card || results.totalIncome <= 0) return;
+
+            const currency = (val) => val.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+            const rule = {
+                needs: results.totalIncome * 0.5,
+                wants: results.totalIncome * 0.3,
+                savings: results.totalIncome * 0.2
+            };
+
+            this.elements.rule503020Card.innerHTML = `
+                <h3>50/30/20 Guideline</h3>
+                <p>Based on your income of ${currency(results.totalIncome)}, here's a suggested budget:</p>
+                <ul>
+                    <li><strong>50% Needs:</strong> ${currency(rule.needs)}</li>
+                    <li><strong>30% Wants:</strong> ${currency(rule.wants)}</li>
+                    <li><strong>20% Savings:</strong> ${currency(rule.savings)}</li>
+                </ul>
+            `;
+        },
+
+        renderChart(categoryData) {
+            if (this.state.budgetChart) this.state.budgetChart.destroy();
+
+            this.state.budgetChart = new Chart(this.elements.canvas, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(categoryData),
+                    datasets: [{
+                        label: 'Expenses by Category',
+                        data: Object.values(categoryData),
+                        backgroundColor: ['#4A90E2', '#50E3C2', '#F5A623', '#F8E71C', '#BD10E0', '#7ED321', '#9013FE', '#B8E986', '#417505', '#E94E77'],
+                        borderColor: '#fff',
+                        borderWidth: 2,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => `${context.label || ''}: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed)}`
+                            }
+                        }
+                    }
+                }
+            });
+        },
+
+        // --- Data Persistence & Transactions ---
+        saveData(data) {
+            localStorage.setItem('atlasBudget', JSON.stringify(data));
+        },
+
+        saveTransactions(data) {
+            let transactions = JSON.parse(localStorage.getItem('atlasTransactions')) || [];
+            const newTransactions = [];
+
+            const itemToCategoryMap = {};
+            for (const category in this.config.budget) {
+                this.config.budget[category].forEach(item => {
+                    const id = item.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    itemToCategoryMap[id] = category;
+                    itemToCategoryMap[id + 'Partner'] = category;
+                });
+            }
+
+            if (+data.userIncome > 0) {
+                newTransactions.push({ description: 'Your Income', category: 'Income', amount: +data.userIncome });
+            }
+            if (+data.partnerIncome > 0) {
+                 newTransactions.push({ description: "Partner's Income", category: 'Income', amount: +data.partnerIncome });
+            }
+
+            for (const key in data) {
+                const amount = +data[key] || 0;
+                if (amount > 0 && !['budgetFor', 'userIncome', 'partnerIncome'].includes(key)) {
+                    const element = this.elements.budgetForm.elements[key];
+                    const description = element.closest('.input-grid').querySelector('label').textContent;
+                    newTransactions.push({
+                        description: description,
+                        category: itemToCategoryMap[key] || 'Miscellaneous',
+                        amount: -amount
+                    });
+                }
+            }
+
+            transactions = [...newTransactions, ...transactions];
+            if (transactions.length > 10) {
+                transactions = transactions.slice(0, 10);
+            }
+            localStorage.setItem('atlasTransactions', JSON.stringify(transactions));
+        },
+
+        renderTransactions() {
+            if (!this.elements.transactionList) return;
+
+            const transactions = JSON.parse(localStorage.getItem('atlasTransactions')) || [];
+            this.elements.transactionList.innerHTML = '';
+
+            if (transactions.length === 0) {
+                this.elements.transactionList.innerHTML = '<li class="transaction-item"><div class="transaction-info"><div class="description">No recent transactions.</div></div></li>';
+                return;
+            }
+
+            const currency = (val) => val.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+
+            transactions.forEach(tx => {
+                const item = document.createElement('li');
+                item.className = 'transaction-item';
+
+                const amountClass = tx.amount >= 0 ? 'positive' : '';
+                const sign = tx.amount >= 0 ? '+' : '-';
+
+                item.innerHTML = `
+                    <div class="transaction-info">
+                        <div class="description">${tx.description}</div>
+                        <div class.category">${tx.category}</div>
+                    </div>
+                    <div class="transaction-amount ${amountClass}">
+                        ${sign}${currency(Math.abs(tx.amount))}
+                    </div>
+                `;
+                this.elements.transactionList.appendChild(item);
+            });
+        },
+
+        loadData() {
+            const savedDataJSON = localStorage.getItem('atlasBudget');
+            if (!savedDataJSON) return;
+
+            try {
+                const savedData = JSON.parse(savedDataJSON);
+                let hasValues = false;
+
+                for (const key in savedData) {
+                    const value = savedData[key];
+                    if (value && key !== 'budgetFor') hasValues = true;
+                    const element = this.elements.budgetForm.elements[key];
+                    if (!element) continue;
+                    if (element instanceof RadioNodeList) {
+                        for (const radio of element) {
+                            if (radio.value === value) radio.checked = true;
+                        }
+                    } else {
+                        element.value = value;
+                    }
+                }
+
+                this.toggleCoupleMode();
+
+                if (hasValues) {
+                    this.elements.budgetForm.dispatchEvent(new Event('submit', { cancelable: true }));
+                }
+            } catch (e) {
+                console.error("Failed to load or parse saved budget data.", e);
+                localStorage.removeItem('atlasBudget');
+            }
+        }
+    };
+
+    AtlasApp.init();
+    </script>
 
 </body>
 </html>
