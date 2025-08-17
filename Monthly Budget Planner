@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✨ Interactive Monthly Budget Planner</title>
+    <!-- Google Fonts for a modern look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* CSS styles for the budget planner application */
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #50e3c2;
+            --background-color: #f4f7f6;
+            --card-background: #ffffff;
+            --text-color: #333;
+            --label-color: #555;
+            --border-color: #e0e0e0;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --border-radius: 10px;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            color: var(--primary-color);
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        header p {
+            color: var(--label-color);
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background: var(--card-background);
+            border-radius: var(--border-radius);
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        fieldset {
+            border: none;
+            padding: 0;
+        }
+
+        fieldset legend {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            width: 100%;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: var(--label-color);
+            margin-bottom: 8px;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1em;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+        }
+
+        .input-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .category-grid .input-grid {
+            align-items: end;
+        }
+
+        .category-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-top: 20px;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .category-grid:first-of-type .category-title {
+            margin-top: 0;
+        }
+
+        .budget-type-selector {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .budget-type-selector label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .calculate-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.2em;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .calculate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Results Section */
+        #results {
+            margin-top: 40px;
+        }
+        
+        #results h2 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 2rem;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+        }
+
+        .results-grid h3 {
+            color: var(--primary-color);
+            margin-top: 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        #summaryCard p {
+            font-size: 1.1em;
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+        }
+
+        #summaryCard p span:last-child {
+            font-weight: 600;
+        }
+
+        #summaryCard .surplus {
+            color: #2ecc71;
+        }
+
+        #summaryCard .deficit {
+            color: #e74c3c;
+        }
+
+        #insightsCard p {
+            margin: 10px 0;
+            padding-left: 15px;
+            border-left: 3px solid var(--secondary-color);
+        }
+
+        .chart-container {
+            position: relative;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Responsive Design */
+        @media (min-width: 768px) {
+            .input-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .category-grid .input-grid {
+                grid-template-columns: 2fr 1fr 1fr;
+            }
+
+            .results-grid {
+                grid-template-columns: repeat(2, 1fr);
+                grid-template-rows: auto auto;
+            }
+
+            #summaryCard {
+                grid-column: 1 / 2;
+                grid-row: 1 / 2;
+            }
+
+            .chart-container {
+                grid-column: 2 / 3;
+                grid-row: 1 / 3;
+            }
+
+            #insightsCard {
+                grid-column: 1 / 2;
+                grid-row: 2 / 3;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Monthly Budget Planner</h1>
+            <p>A smart and simple way to manage your finances.</p>
+        </header>
+
+        <main>
+            <form id="budgetForm">
+                <!-- Budget Type Selection -->
+                <fieldset class="card">
+                    <legend>1. Budget Type</legend>
+                    <div class="form-group budget-type-selector">
+                        <label>
+                            <input type="radio" name="budgetFor" value="individual" checked> Budget for Myself
+                        </label>
+                        <label>
+                            <input type="radio" name="budgetFor" value="couple"> Budget for Me & My Partner
+                        </label>
+                    </div>
+                </fieldset>
+
+                <!-- Income Section -->
+                <fieldset class="card" id="incomeSection">
+                    <legend>2. Monthly Income (After Tax)</legend>
+                    <div class="input-grid">
+                        <div class="form-group user-input">
+                            <label for="userIncome">Your Income</label>
+                            <input type="number" id="userIncome" name="userIncome" min="0" step="100" placeholder="e.g., 3000" required>
+                        </div>
+                        <div class="form-group partner-input hidden">
+                            <label for="partnerIncome">Partner's Income</label>
+                            <input type="number" id="partnerIncome" name="partnerIncome" min="0" step="100" placeholder="e.g., 3500">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- Expenses Section (Dynamically Generated) -->
+                <fieldset class="card">
+                    <legend>3. Monthly Expenses</legend>
+                    <div id="expensesContainer">
+                        <!-- JavaScript will populate this area -->
+                    </div>
+                </fieldset>
+
+                <button type="submit" class="calculate-btn">Calculate My Budget 🚀</button>
+            </form>
+
+            <!-- Results Section -->
+            <section id="results" class="hidden">
+                <h2>Budget Summary</h2>
+                <div class="results-grid">
+                    <div class="card" id="summaryCard">
+                        <!-- Summary content will be injected here -->
+                    </div>
+                    <div class="card chart-container">
+                        <h3>Expense Breakdown</h3>
+                        <canvas id="budgetChart"></canvas>
+                    </div>
+                    <div class="card" id="insightsCard">
+                        <h3>Financial Insights 💡</h3>
+                        <!-- Insights will be injected here -->
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Self-executing anonymous function to encapsulate the script
+        (() => {
+            // --- CONFIGURATION ---
+            // This object drives the entire form generation. Easy to add/remove categories or items.
+            const budgetConfig = {
+                "🏡 Housing": ["Mortgage/Rent", "Property Tax", "Repairs"],
+                "💡 Utilities": ["Electricity", "Water", "Gas", "Internet"],
+                "🛒 Food": ["Groceries", "Dining Out"],
+                "🚗 Transportation": ["Car Payment", "Gas/Fuel", "Public Transit", "Insurance"],
+                "⚕️ Healthcare": ["Health Insurance", "Medications", "Appointments"],
+                "👨‍👩‍👧 Personal": ["Clothing", "Education", "Subscriptions", "Hobbies"],
+                "💰 Savings": ["Emergency Fund", "Retirement", "Investments"],
+                "🎉 Entertainment": ["Events", "Streaming", "Vacations"],
+                "🎁 Miscellaneous": ["Gifts", "Donations"]
+            };
+
+            // Define which categories are considered essential for financial insights
+            const NECESSARY_CATEGORIES = ["🏡 Housing", "💡 Utilities", "🛒 Food", "🚗 Transportation", "⚕️ Healthcare"];
+
+            // --- DOM ELEMENTS ---
+            const form = document.getElementById('budgetForm');
+            const expensesContainer = document.getElementById('expensesContainer');
+            const resultsSection = document.getElementById('results');
+            const budgetTypeRadios = document.querySelectorAll('input[name="budgetFor"]');
+            const canvas = document.getElementById('budgetChart');
+            let budgetChart = null; // To hold the chart instance
+
+            // --- FUNCTIONS ---
+
+            /**
+             * Generates form fields dynamically based on the budgetConfig object.
+             * This makes the HTML cleaner and the app easier to maintain.
+             */
+            function renderForm() {
+                let html = '';
+                for (const category in budgetConfig) {
+                    html += `<div class="category-grid">
+                                <h4 class="category-title">${category}</h4>`;
+                    budgetConfig[category].forEach(item => {
+                        // Create a unique, JS-friendly ID from the item name
+                        const id = item.toLowerCase().replace(/[^a-z0-9]/g, '');
+                        html += `
+                            <div class="input-grid">
+                                <label for="${id}">${item}</label>
+                                <div class="form-group user-input">
+                                    <input type="number" id="${id}" name="${id}" min="0" step="10" placeholder="$0" data-category="${category}">
+                                </div>
+                                <div class="form-group partner-input hidden">
+                                    <input type="number" id="${id}Partner" name="${id}Partner" min="0" step="10" placeholder="$0" data-category="${category}">
+                                </div>
+                            </div>`;
+                    });
+                    html += `</div>`;
+                }
+                expensesContainer.innerHTML = html;
+            }
+
+            /**
+             * Toggles the visibility of partner-related input fields based on radio button selection.
+             */
+            function toggleCoupleMode() {
+                const isCouple = document.querySelector('input[name="budgetFor"]:checked').value === 'couple';
+                document.querySelectorAll('.partner-input').forEach(el => {
+                    el.classList.toggle('hidden', !isCouple);
+                });
+            }
+
+            /**
+             * Calculates all budget totals and breakdowns from the form data.
+             * @param {FormData} formData - The form data object.
+             * @returns {object} - An object containing the calculated budget results.
+             */
+            function calculateBudget(formData) {
+                const data = Object.fromEntries(formData.entries());
+                const isCouple = data.budgetFor === 'couple';
+
+                const results = {
+                    user: {
+                        income: +data.userIncome || 0,
+                        expenses: 0,
+                        necessary: 0,
+                        discretionary: 0
+                    },
+                    partner: {
+                        income: +data.partnerIncome || 0,
+                        expenses: 0,
+                        necessary: 0,
+                        discretionary: 0
+                    },
+                    categoryTotals: {},
+                };
+
+                // Iterate over form entries to calculate expenses
+                for (const [key, value] of formData.entries()) {
+                    // Skip non-expense fields
+                    if (['budgetFor', 'userIncome', 'partnerIncome'].includes(key)) continue;
+
+                    const amount = +value || 0;
+                    if (amount === 0) continue; // Skip empty fields
+
+                    const element = document.getElementById(key);
+                    const category = element.dataset.category;
+
+                    // Initialize category total if not present
+                    results.categoryTotals[category] = (results.categoryTotals[category] || 0) + amount;
+
+                    const isNecessary = NECESSARY_CATEGORIES.includes(category);
+
+                    // Assign the expense to the correct person and category type
+                    if (key.includes('Partner')) {
+                        results.partner.expenses += amount;
+                        results.partner[isNecessary ? 'necessary' : 'discretionary'] += amount;
+                    } else {
+                        results.user.expenses += amount;
+                        results.user[isNecessary ? 'necessary' : 'discretionary'] += amount;
+                    }
+                }
+
+                results.totalIncome = results.user.income + (isCouple ? results.partner.income : 0);
+                results.totalExpenses = results.user.expenses + (isCouple ? results.partner.expenses : 0);
+                results.surplus = results.totalIncome - results.totalExpenses;
+
+                return results;
+            }
+
+            /**
+             * Displays the calculated results in the DOM, including cards and the chart.
+             * @param {object} results - The results object from calculateBudget.
+             */
+            function displayResults(results) {
+                const isCouple = document.querySelector('input[name="budgetFor"]:checked').value === 'couple';
+                const currency = (val) => val.toLocaleString('en-US', {
+                    style: 'currency',
+                    currency: 'USD'
+                });
+
+                // --- Summary Card ---
+                const summaryCard = document.getElementById('summaryCard');
+                summaryCard.innerHTML = `
+                    <h3>Summary</h3>
+                    <p><span>Total Income:</span> <span>${currency(results.totalIncome)}</span></p>
+                    <p><span>Total Expenses:</span> <span>${currency(results.totalExpenses)}</span></p>
+                    <hr>
+                    <p><strong>Final Balance:</strong> 
+                       <strong class="${results.surplus >= 0 ? 'surplus' : 'deficit'}">
+                           ${currency(results.surplus)}
+                       </strong>
+                    </p>
+                `;
+
+                // --- Insights Card ---
+                const insightsCard = document.getElementById('insightsCard');
+                let insightsHTML = '';
+                if (results.surplus > 0) {
+                    insightsHTML += `<p>Great job! You have a surplus. Consider allocating more to savings or investments.</p>`;
+                } else if (results.surplus < 0) {
+                    insightsHTML += `<p>You're in a deficit. Review your discretionary spending to find areas to cut back.</p>`;
+                } else {
+                    insightsHTML += `<p>Your budget is balanced. Aim to create a surplus for unexpected costs.</p>`;
+                }
+
+                const userDiscretionaryPercent = results.user.expenses > 0 ? (results.user.discretionary / results.user.expenses * 100).toFixed(0) : 0;
+                insightsHTML += `<p>Your discretionary spending makes up <strong>${userDiscretionaryPercent}%</strong> of your expenses.</p>`;
+
+                if (isCouple && results.partner.expenses > 0) {
+                    const partnerDiscretionaryPercent = (results.partner.discretionary / results.partner.expenses * 100).toFixed(0);
+                    insightsHTML += `<p>Your partner's discretionary spending is <strong>${partnerDiscretionaryPercent}%</strong> of their expenses.</p>`;
+                }
+                insightsCard.innerHTML = `<h3>Financial Insights 💡</h3>${insightsHTML}`;
+
+                // --- Render Chart ---
+                renderChart(results.categoryTotals);
+
+                resultsSection.classList.remove('hidden');
+                resultsSection.scrollIntoView({
+                    behavior: 'smooth'
+                });
+            }
+
+            /**
+             * Renders or updates the budget chart using Chart.js.
+             * @param {object} categoryData - Object with categories as keys and total amounts as values.
+             */
+            function renderChart(categoryData) {
+                // Destroy the old chart instance if it exists to prevent rendering issues
+                if (budgetChart) {
+                    budgetChart.destroy();
+                }
+
+                const labels = Object.keys(categoryData);
+                const data = Object.values(categoryData);
+
+                budgetChart = new Chart(canvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Expenses by Category',
+                            data: data,
+                            backgroundColor: [
+                                '#4A90E2', '#50E3C2', '#F5A623', '#F8E71C', '#BD10E0',
+                                '#7ED321', '#9013FE', '#B8E986', '#417505', '#E94E77'
+                            ],
+                            borderColor: '#fff',
+                            borderWidth: 2,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed !== null) {
+                                            label += new Intl.NumberFormat('en-US', {
+                                                style: 'currency',
+                                                currency: 'USD'
+                                            }).format(context.parsed);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+
+            // --- EVENT LISTENERS ---
+            // Add listeners to the radio buttons to toggle couple mode
+            budgetTypeRadios.forEach(radio => radio.addEventListener('change', toggleCoupleMode));
+
+            // Handle the form submission
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const formData = new FormData(form);
+                const results = calculateBudget(formData);
+                displayResults(results);
+            });
+
+            // --- INITIALIZATION ---
+            // Generate the initial form fields when the script loads
+            renderForm();
+        })();
+    </script>
+</body>
+
+</html>
