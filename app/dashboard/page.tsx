@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { useFinanceStore } from '@/lib/store'
-import NetWorthChart from '@/components/NetWorthChart'
+import NetWorthDashboard from '@/components/NetWorthDashboard'
 import MonthlySpendingChart from '@/components/MonthlySpendingChart'
 import MonthPicker from '@/components/MonthPicker'
 
@@ -58,8 +58,7 @@ export default function DashboardPage() {
           <MonthlySpendingChart />
         </section>
         <section className="rounded-lg border p-4">
-          <h2 className="font-medium mb-2">Net Worth</h2>
-          <NetWorthChart />
+          <NetWorthDashboard />
         </section>
       </div>
     </div>

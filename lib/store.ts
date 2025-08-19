@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { categorizeTransaction } from './categorization'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Transaction = Record<string, any> & {
@@ -354,35 +355,21 @@ export const useFinanceStore = create<FinanceState>((set, get) => {
         return next
       }),
     applyRules: () =>
-      set(() => {
-        const categories = get().categories
-        const catMap: Array<{ name: string; regs: RegExp[] }> = Object.entries(
-          categories
-        ).map(([name, c]) => ({
-          name,
-          regs: (c.rules || [])
-            .map((p) => {
-              try {
-                return new RegExp(p, 'i')
-              } catch {
-                return null as any
-              }
-            })
-            .filter(Boolean) as RegExp[],
-        }))
-        const map = { ...get().transactionCategories } as Record<string, string>
-        for (const row of get().transactions) {
-          const n = normalizeRow(row)
-          if (!n) continue
-          if (map[n.key]) continue
-          for (const { name, regs } of catMap) {
-            if (regs.some((r) => r.test(n.description))) {
-              map[n.key] = name
-              break
-            }
+      set((state) => {
+        const newTransactionCategories = { ...state.transactionCategories }
+        for (const transaction of state.transactions) {
+          const normalized = normalizeRow(transaction)
+          if (!normalized) continue
+
+          // If already categorized, skip
+          if (newTransactionCategories[normalized.key]) continue
+
+          const category = categorizeTransaction(normalized.description)
+          if (category) {
+            newTransactionCategories[normalized.key] = category
           }
         }
-        const next = { ...get(), transactionCategories: map } as FinanceState
+        const next = { ...get(), transactionCategories: newTransactionCategories } as FinanceState
         persist(next)
         return next
       }),
