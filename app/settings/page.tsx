@@ -3,7 +3,7 @@
 import { useFinanceStore } from "@/lib/store";
 
 export default function SettingsPage() {
-	const { balances, setBalance, exportState, importState, resetAll } = useFinanceStore();
+	const { balances, setBalance, exportState, importState, resetAll, settings, setSettings, applyRules } = useFinanceStore();
 
 	return (
 		<div className="space-y-6">
@@ -18,6 +18,20 @@ export default function SettingsPage() {
 				<label className="block text-sm">Debt
 					<input className="mt-1 w-full border rounded px-2 py-1" type="number" value={balances.debt} onChange={(e) => setBalance("debt", Number(e.target.value))} />
 				</label>
+			</section>
+			<section className="rounded border p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+				<label className="block text-sm">Currency
+					<input className="mt-1 w-full border rounded px-2 py-1" value={settings.currency} onChange={(e) => setSettings({ currency: e.target.value })} />
+				</label>
+				<label className="block text-sm">Monthly Income
+					<input className="mt-1 w-full border rounded px-2 py-1" type="number" value={settings.monthlyIncome} onChange={(e) => setSettings({ monthlyIncome: Number(e.target.value) })} />
+				</label>
+				<label className="block text-sm">Monthly Invest Contribution
+					<input className="mt-1 w-full border rounded px-2 py-1" type="number" value={settings.monthlyInvestContribution} onChange={(e) => setSettings({ monthlyInvestContribution: Number(e.target.value) })} />
+				</label>
+				<div className="col-span-full">
+					<button className="rounded border px-3 py-2" onClick={() => applyRules()}>Apply Categorization Rules</button>
+				</div>
 			</section>
 			<section className="rounded border p-4 space-y-3">
 				<h2 className="font-medium">Backup</h2>
