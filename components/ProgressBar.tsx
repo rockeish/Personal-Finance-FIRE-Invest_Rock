@@ -9,7 +9,10 @@ export default function ProgressBar({
   const color =
     pct < 80 ? 'bg-emerald-500' : pct < 100 ? 'bg-amber-500' : 'bg-red-500'
   return (
-    <div className="h-2 w-full bg-gray-200 rounded" data-testid="progress-bar-container">
+    <div
+      className="h-2 w-full bg-gray-200 rounded"
+      data-testid="progress-bar-container"
+    >
       <div className={`h-2 ${color} rounded`} style={{ width: `${pct}%` }} />
     </div>
   )

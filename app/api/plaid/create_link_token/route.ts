@@ -1,6 +1,12 @@
 // /app/api/plaid/create_link_token/route.ts
 import { NextResponse } from 'next/server'
-import { PlaidApi, Configuration, PlaidEnvironments, Products, CountryCode } from 'plaid'
+import {
+  PlaidApi,
+  Configuration,
+  PlaidEnvironments,
+  Products,
+  CountryCode,
+} from 'plaid'
 
 // IMPORTANT: Add your Plaid credentials to a .env.local file
 // PLAID_CLIENT_ID=...
