@@ -27,7 +27,9 @@ export default function FireDashboard() {
           (fireNumber * (0.05 / 12)) /
             (settings.monthlyInvestContribution * 12) +
             1
-        ) / Math.log(1 + 0.05 / 12) / 12
+        ) /
+        Math.log(1 + 0.05 / 12) /
+        12
       : 'N/A'
 
   return (
@@ -40,7 +42,9 @@ export default function FireDashboard() {
         </div>
         <div className="p-4 rounded-lg border">
           <h3 className="font-medium text-sm text-gray-600">Savings Rate</h3>
-          <p className="text-2xl font-bold">{formatPercent(savingsRate / 100)}</p>
+          <p className="text-2xl font-bold">
+            {formatPercent(savingsRate / 100)}
+          </p>
         </div>
         <div className="p-4 rounded-lg border">
           <h3 className="font-medium text-sm text-gray-600">Years to FI</h3>

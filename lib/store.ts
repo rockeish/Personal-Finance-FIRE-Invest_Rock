@@ -369,7 +369,10 @@ export const useFinanceStore = create<FinanceState>((set, get) => {
             newTransactionCategories[normalized.key] = category
           }
         }
-        const next = { ...get(), transactionCategories: newTransactionCategories } as FinanceState
+        const next = {
+          ...get(),
+          transactionCategories: newTransactionCategories,
+        } as FinanceState
         persist(next)
         return next
       }),
