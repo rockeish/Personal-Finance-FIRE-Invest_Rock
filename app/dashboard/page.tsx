@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import NetWorthDashboard from '@/components/NetWorthDashboard'
 import MonthlySpendingChart from '@/components/MonthlySpendingChart'
 import MonthPicker from '@/components/MonthPicker'
+import CashFlowChart from '@/components/CashFlowChart'
 
 interface Account {
   id: number;
@@ -25,6 +26,10 @@ export default function DashboardPage() {
   const [balances, setBalances] = useState({ cash: 0, investments: 0, debt: 0 });
   const [kpis, setKpis] = useState({ totalSpent: 0 });
   const [isLoading, setIsLoading] = useState(true);
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -66,7 +71,7 @@ export default function DashboardPage() {
       <div className="flex items-center gap-4">
         <h1 className="text-2xl font-semibold">Dashboard</h1>
         <div className="ml-auto flex items-center gap-4">
-          <MonthPicker />
+          <MonthPicker currentMonth={currentMonth} setCurrentMonth={setCurrentMonth} />
           <button
             onClick={async () => {
               await fetch('/api/auth/logout', { method: 'POST' });
@@ -96,16 +101,19 @@ export default function DashboardPage() {
           <p className="text-2xl">${kpis.totalSpent.toLocaleString()}</p>
         </section>
       </div>
-      {/* These components will be re-added after they are refactored */}
-      {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <section className="rounded-lg border p-4">
           <h2 className="font-medium mb-2">Monthly Spending</h2>
-          <MonthlySpendingChart />
+          <MonthlySpendingChart currentMonth={currentMonth} />
         </section>
         <section className="rounded-lg border p-4">
           <NetWorthDashboard />
         </section>
-      </div> */}
+      </div>
+      <section className="rounded-lg border p-4">
+        <h2 className="font-medium mb-2">Cash Flow (Last 6 Months)</h2>
+        <CashFlowChart />
+      </section>
     </div>
   )
 }

@@ -52,7 +52,23 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         WHERE t.id = $1;
       `;
       const result = await client.query(resultQuery, [transactionId]);
-      return NextResponse.json(result.rows[0]);
+      const updatedTransaction = result.rows[0];
+
+      // Learn from this categorization for future suggestions
+      if (updatedTransaction.description && categoryId) {
+        const keywords = updatedTransaction.description.split(' ').filter(w => w.length > 3);
+        const suggestionQuery = `
+          INSERT INTO categorization_suggestions (user_id, description_keyword, category_id, confidence_score)
+          VALUES ($1, $2, $3, 1)
+          ON CONFLICT (user_id, description_keyword, category_id)
+          DO UPDATE SET confidence_score = categorization_suggestions.confidence_score + 1;
+        `;
+        for (const keyword of keywords) {
+          await client.query(suggestionQuery, [userId, keyword.toLowerCase(), categoryId]);
+        }
+      }
+
+      return NextResponse.json(updatedTransaction);
     } finally {
       client.release();
     }

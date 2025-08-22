@@ -65,3 +65,22 @@ CREATE INDEX ON accounts (user_id);
 CREATE INDEX ON categories (user_id);
 CREATE INDEX ON transactions (account_id);
 CREATE INDEX ON investments (user_id);
+
+-- Net Worth Snapshots table
+CREATE TABLE net_worth_snapshots (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    date DATE NOT NULL,
+    net_worth DECIMAL(15, 2) NOT NULL,
+    UNIQUE(user_id, date)
+);
+
+-- Categorization Suggestions table
+CREATE TABLE categorization_suggestions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    description_keyword VARCHAR(255) NOT NULL,
+    category_id INTEGER NOT NULL REFERENCES categories(id),
+    confidence_score INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(user_id, description_keyword, category_id)
+);

@@ -41,7 +41,8 @@ export default function TransactionsPage() {
     fetchInitialData();
   }, []);
 
-  const [transactions, setTransactions] = useState([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<Record<number, any>>({});
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -53,6 +54,21 @@ export default function TransactionsPage() {
       if (res.ok) {
         const data = await res.json();
         setTransactions(data);
+
+        // Fetch suggestions for uncategorized transactions
+        const newSuggestions = {};
+        for (const tx of data) {
+          if (!tx.category_id) {
+            const suggestionRes = await fetch(`/api/transactions/suggestions?description=${encodeURIComponent(tx.description)}`);
+            if (suggestionRes.ok) {
+              const suggestion = await suggestionRes.json();
+              if (suggestion) {
+                newSuggestions[tx.id] = suggestion;
+              }
+            }
+          }
+        }
+        setSuggestions(newSuggestions);
       }
     };
     if (currentMonth) {
@@ -277,7 +293,7 @@ export default function TransactionsPage() {
                   <td>
                     <select
                       className="border rounded px-2 py-1 text-xs"
-                      value={t.category_id || ''}
+                      value={t.category_id || suggestions[t.id]?.category_id || ''}
                       onChange={async (e) => {
                         const categoryId = e.target.value;
                         const res = await fetch(`/api/transactions/${t.id}/categorize`, {

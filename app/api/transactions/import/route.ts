@@ -14,9 +14,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
 
-    // TODO: We should also verify that the accountId belongs to the user.
-
     const client = await pool.connect();
+
+    const accountCheck = await client.query('SELECT user_id FROM accounts WHERE id = $1', [accountId]);
+    if (accountCheck.rows.length === 0 || accountCheck.rows[0].user_id.toString() !== userId) {
+      return NextResponse.json({ error: 'Account not found or access denied' }, { status: 404 });
+    }
     try {
       await client.query('BEGIN');
 
