@@ -18,6 +18,7 @@ export function formatPercent(value: number, locale?: string) {
   try {
     return new Intl.NumberFormat(locale, {
       style: 'percent',
+      minimumFractionDigits: 1,
       maximumFractionDigits: 1,
     }).format(value)
   } catch {

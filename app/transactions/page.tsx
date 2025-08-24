@@ -1,41 +1,123 @@
 'use client'
 
 import Papa from 'papaparse'
-import { useMemo, useRef, useState } from 'react'
-import { useFinanceStore, type Transaction } from '@/lib/store'
+import { useMemo, useRef, useState, useEffect } from 'react'
+import Papa from 'papaparse'
+import { useRef, useState, useEffect } from 'react'
 import MonthPicker from '@/components/MonthPicker'
+
+interface Account {
+  id: number;
+  name: string;
+}
 
 export default function TransactionsPage() {
   const fileRef = useRef<HTMLInputElement | null>(null)
-  const {
-    addTransactions,
-    clearTransactions,
-    currentMonth,
-    getMonthlyTransactions,
-    categories,
-    setTransactionCategory,
-    applyRules,
-    addCategory,
-    addCategoryRule,
-  } = useFinanceStore()
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
 
-  const monthTx = useMemo(
-    () => getMonthlyTransactions(currentMonth),
-    [getMonthlyTransactions, currentMonth]
-  )
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState<string>('');
+
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      const res = await fetch('/api/data/initial');
+      if (res.status === 401) {
+        window.location.href = '/login';
+        return;
+      }
+      if (res.ok) {
+        const data = await res.json();
+        setAccounts(data.accounts);
+        setCategories(data.categories);
+        if (data.accounts.length > 0) {
+          setSelectedAccountId(data.accounts[0].id.toString());
+        }
+      }
+    };
+    fetchInitialData();
+  }, []);
+
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<Record<number, any>>({});
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      const res = await fetch(`/api/transactions?month=${currentMonth}`);
+      if (res.status === 401) {
+        window.location.href = '/login';
+        return;
+      }
+      if (res.ok) {
+        const data = await res.json();
+        setTransactions(data);
+
+        // Fetch suggestions for uncategorized transactions
+        const newSuggestions = {};
+        for (const tx of data) {
+          if (!tx.category_id) {
+            const suggestionRes = await fetch(`/api/transactions/suggestions?description=${encodeURIComponent(tx.description)}`);
+            if (suggestionRes.ok) {
+              const suggestion = await suggestionRes.json();
+              if (suggestion) {
+                newSuggestions[tx.id] = suggestion;
+              }
+            }
+          }
+        }
+        setSuggestions(newSuggestions);
+      }
+    };
+    if (currentMonth) {
+      fetchTransactions();
+    }
+  }, [currentMonth]);
+
+  const monthTx = transactions;
   const [newCat, setNewCat] = useState('')
   const [ruleCat, setRuleCat] = useState('')
   const [rulePattern, setRulePattern] = useState('')
 
-  function onUpload(files: FileList | null) {
+  async function onUpload(files: FileList | null) {
     if (!files || files.length === 0) return
+    if (!selectedAccountId) {
+      alert('Please select an account first.');
+      return;
+    }
     const file = files[0]
     Papa.parse(file, {
       header: true,
       dynamicTyping: true,
-      complete: (result) => {
+      complete: async (result) => {
         const rows = (result.data as Transaction[]).filter(Boolean)
-        addTransactions(rows)
+
+        const res = await fetch('/api/transactions/import', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            transactions: rows,
+            accountId: selectedAccountId
+          })
+        });
+
+        if (res.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+
+        // Refresh the transaction list after import
+        if (res.ok) {
+          const fetchRes = await fetch(`/api/transactions?month=${currentMonth}`);
+          if (fetchRes.ok) {
+            const data = await fetchRes.json();
+            setTransactions(data);
+          }
+        }
       },
     })
   }
@@ -44,10 +126,21 @@ export default function TransactionsPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Transactions</h1>
       <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={selectedAccountId}
+          onChange={(e) => setSelectedAccountId(e.target.value)}
+          className="border rounded px-3 py-2"
+        >
+          <option value="">Select Account</option>
+          {accounts.map(acc => (
+            <option key={acc.id} value={acc.id}>{acc.name}</option>
+          ))}
+        </select>
         <input
           ref={fileRef}
           type="file"
           accept=".csv"
+          className="hidden"
           onChange={(e) => onUpload(e.target.files)}
         />
         <button
@@ -58,12 +151,24 @@ export default function TransactionsPage() {
         </button>
         <button
           className="rounded border px-3 py-2"
-          onClick={() => clearTransactions()}
+          onClick={async () => {
+            if (confirm('Are you sure you want to clear all transactions?')) {
+              const res = await fetch('/api/transactions/clear', { method: 'DELETE' });
+              if (res.status === 401) {
+                window.location.href = '/login';
+                return;
+              }
+              // Refresh transactions
+              if (res.ok) {
+                setTransactions([]);
+              }
+            }
+          }}
         >
           Clear
         </button>
         <div className="ml-auto">
-          <MonthPicker />
+          <MonthPicker currentMonth={currentMonth} setCurrentMonth={setCurrentMonth} />
         </div>
       </div>
 
@@ -79,10 +184,18 @@ export default function TransactionsPage() {
             />
             <button
               className="rounded border px-2 py-1 text-sm"
-              onClick={() => {
+              onClick={async () => {
                 if (newCat.trim()) {
-                  addCategory(newCat.trim())
-                  setNewCat('')
+                  const res = await fetch('/api/categories', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: newCat.trim() })
+                  });
+                  if (res.ok) {
+                    const newCategory = await res.json();
+                    setCategories([...categories, newCategory]);
+                    setNewCat('');
+                  }
                 }
               }}
             >
@@ -90,11 +203,11 @@ export default function TransactionsPage() {
             </button>
           </div>
           <ul className="text-sm text-gray-600 max-h-56 overflow-auto">
-            {Object.keys(categories).map((c) => (
-              <li key={c} className="flex justify-between border-b py-1">
-                <span>{c}</span>
+            {categories.map((c) => (
+              <li key={c.id} className="flex justify-between border-b py-1">
+                <span>{c.name}</span>
                 <span className="text-xs text-gray-400">
-                  {categories[c].rules.length} rules
+                  {c.rules?.length || 0} rules
                 </span>
               </li>
             ))}
@@ -106,9 +219,9 @@ export default function TransactionsPage() {
               onChange={(e) => setRuleCat(e.target.value)}
             >
               <option value="">Select category</option>
-              {Object.keys(categories).map((c) => (
-                <option key={c} value={c}>
-                  {c}
+              {categories.map((c) => (
+                <option key={c.id} value={c.name}>
+                  {c.name}
                 </option>
               ))}
             </select>
@@ -120,10 +233,22 @@ export default function TransactionsPage() {
             />
             <button
               className="rounded border px-2 py-1 text-sm"
-              onClick={() => {
+              onClick={async () => {
                 if (ruleCat && rulePattern) {
-                  addCategoryRule(ruleCat, rulePattern)
-                  setRulePattern('')
+                  const category = categories.find(c => c.name === ruleCat);
+                  if (!category) return;
+
+                  const res = await fetch(`/api/categories/${category.id}/rules`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rule: rulePattern })
+                  });
+
+                  if (res.ok) {
+                    const updatedCategory = await res.json();
+                    setCategories(categories.map(c => c.id === updatedCategory.id ? updatedCategory : c));
+                    setRulePattern('');
+                  }
                 }
               }}
             >
@@ -131,7 +256,19 @@ export default function TransactionsPage() {
             </button>
             <button
               className="rounded bg-brand text-white px-2 py-1 text-sm"
-              onClick={() => applyRules()}
+              onClick={async () => {
+                const res = await fetch('/api/transactions/apply-rules', { method: 'POST' });
+                if (res.ok) {
+                  const result = await res.json();
+                  alert(result.message);
+                  // Refresh transactions
+                  const fetchRes = await fetch(`/api/transactions?month=${currentMonth}`);
+                  if (fetchRes.ok) {
+                    const data = await fetchRes.json();
+                    setTransactions(data);
+                  }
+                }
+              }}
             >
               Apply Rules
             </button>
@@ -149,30 +286,36 @@ export default function TransactionsPage() {
               </tr>
             </thead>
             <tbody>
-              {monthTx.slice(0, 300).map((t) => (
-                <tr key={t.key} className="border-b hover:bg-gray-50">
-                  <td className="py-1">{t.date.toISOString().slice(0, 10)}</td>
+              {monthTx.slice(0, 300).map((t: any) => (
+                <tr key={t.id} className="border-b hover:bg-gray-50">
+                  <td className="py-1">{new Date(t.date).toLocaleDateString()}</td>
                   <td>{t.description}</td>
                   <td>
                     <select
                       className="border rounded px-2 py-1 text-xs"
-                      value={t.category || ''}
-                      onChange={(e) =>
-                        setTransactionCategory(
-                          t.key,
-                          e.target.value || undefined
-                        )
-                      }
+                      value={t.category_id || suggestions[t.id]?.category_id || ''}
+                      onChange={async (e) => {
+                        const categoryId = e.target.value;
+                        const res = await fetch(`/api/transactions/${t.id}/categorize`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ categoryId })
+                        });
+                        if (res.ok) {
+                          const updatedTransaction = await res.json();
+                          setTransactions(transactions.map(tx => tx.id === updatedTransaction.id ? updatedTransaction : tx));
+                        }
+                      }}
                     >
                       <option value="">—</option>
-                      {Object.keys(categories).map((c) => (
-                        <option key={c} value={c}>
-                          {c}
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
                         </option>
                       ))}
                     </select>
                   </td>
-                  <td className="text-right">{t.amount.toLocaleString()}</td>
+                  <td className="text-right">{parseFloat(t.amount).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>

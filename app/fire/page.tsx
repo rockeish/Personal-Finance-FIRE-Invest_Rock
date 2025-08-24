@@ -1,112 +1,107 @@
 'use client'
 
-import { useFinanceStore } from '@/lib/store'
-import Link from 'next/link'
-import { useMemo } from 'react'
+import { useState } from 'react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 
-function calculateFIRE({
-  annualSpending,
-  withdrawalRatePercent,
-  currentPortfolio,
-  annualContributions,
-  expectedReturnPercent,
-}: {
-  annualSpending: number
-  withdrawalRatePercent: number
-  currentPortfolio: number
-  annualContributions: number
-  expectedReturnPercent: number
-}) {
-  const target = annualSpending / (withdrawalRatePercent / 100)
-  let years = 0
-  let balance = currentPortfolio
-  const r = expectedReturnPercent / 100
-  while (balance < target && years < 100) {
-    balance = balance * (1 + r) + annualContributions
-    years += 1
-  }
-  return { target, yearsToFI: years, projectedBalance: balance }
+interface FireInputs {
+  currentPortfolio: number;
+  monthlyInvestment: number;
+  annualReturn: number;
+  fireNumber: number;
 }
 
-export default function FIREPage() {
-  const { balances, monthlySpending, settings, setSettings } = useFinanceStore()
-  const avgMonthly = useMemo(() => {
-    if (monthlySpending.length === 0) return 0
-    return (
-      monthlySpending.reduce((s, m) => s + m.amount, 0) / monthlySpending.length
-    )
-  }, [monthlySpending])
+export default function FirePage() {
+  const [inputs, setInputs] = useState<FireInputs>({
+    currentPortfolio: 0,
+    monthlyInvestment: 0,
+    annualReturn: 7,
+    fireNumber: 1000000,
+  });
+  const [projection, setProjection] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const result = calculateFIRE({
-    annualSpending: avgMonthly * 12,
-    withdrawalRatePercent: settings.withdrawalRatePercent,
-    currentPortfolio: balances.investments,
-    annualContributions: settings.monthlyInvestContribution * 12,
-    expectedReturnPercent: 5,
-  })
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      const res = await fetch('/api/fire/data');
+      if (res.ok) {
+        const data = await res.json();
+        setInputs(prev => ({ ...prev, ...data }));
+      }
+      setIsLoading(false);
+    };
+    fetchData();
+  }, []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setInputs(prev => ({ ...prev, [name]: parseFloat(value) }));
+  };
+
+  const calculateProjection = () => {
+    const data = [];
+    let portfolio = inputs.currentPortfolio;
+    const monthlyReturn = inputs.annualReturn / 100 / 12;
+    const monthlyInvestment = inputs.monthlyInvestment;
+
+    for (let year = 0; year <= 40; year++) {
+      data.push({ year: new Date().getFullYear() + year, value: portfolio });
+      if (portfolio >= inputs.fireNumber) {
+        break;
+      }
+      for (let month = 0; month < 12; month++) {
+        portfolio += monthlyInvestment;
+        portfolio *= (1 + monthlyReturn);
+      }
+    }
+    setProjection(data);
+  };
+
+  if (isLoading) {
+    return <div>Loading calculator...</div>;
+  }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">FIRE</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <section className="rounded border p-4 space-y-3">
-          <h2 className="font-medium">Inputs</h2>
-          <label className="block text-sm">
-            Withdrawal rate (%)
-            <input
-              className="mt-1 w-full border rounded px-2 py-1"
-              type="number"
-              value={settings.withdrawalRatePercent}
-              onChange={(e) =>
-                setSettings({ withdrawalRatePercent: Number(e.target.value) })
-              }
-            />
-          </label>
-          <label className="block text-sm">
-            Monthly investment contribution ($)
-            <input
-              className="mt-1 w-full border rounded px-2 py-1"
-              type="number"
-              value={settings.monthlyInvestContribution}
-              onChange={(e) =>
-                setSettings({
-                  monthlyInvestContribution: Number(e.target.value),
-                })
-              }
-            />
-          </label>
-          <p className="text-xs text-gray-500">
-            Adjust budgeted expenses in{' '}
-            <Link className="text-brand" href="/budget">
-              Budget
-            </Link>{' '}
-            and target allocations in{' '}
-            <Link className="text-brand" href="/investments">
-              Investments
-            </Link>
-            .
-          </p>
+      <h1 className="text-2xl font-semibold">FIRE Calculator</h1>
+
+      <section className="rounded-lg border p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <label className="block text-sm">
+          Current Portfolio
+          <input name="currentPortfolio" type="number" value={inputs.currentPortfolio} onChange={handleInputChange} className="mt-1 w-full border rounded px-2 py-1" />
+        </label>
+        <label className="block text-sm">
+          Monthly Investment
+          <input name="monthlyInvestment" type="number" value={inputs.monthlyInvestment} onChange={handleInputChange} className="mt-1 w-full border rounded px-2 py-1" />
+        </label>
+        <label className="block text-sm">
+          Est. Annual Return (%)
+          <input name="annualReturn" type="number" value={inputs.annualReturn} onChange={handleInputChange} className="mt-1 w-full border rounded px-2 py-1" />
+        </label>
+        <label className="block text-sm">
+          FIRE Number
+          <input name="fireNumber" type="number" value={inputs.fireNumber} onChange={handleInputChange} className="mt-1 w-full border rounded px-2 py-1" />
+        </label>
+        <div className="col-span-full">
+          <button onClick={calculateProjection} className="rounded bg-brand px-4 py-2 text-white">Calculate</button>
+        </div>
+      </section>
+
+      {projection.length > 0 && (
+        <section className="rounded-lg border p-4">
+          <h2 className="font-medium mb-2">Net Worth Projection</h2>
+          <ResponsiveContainer width="100%" height={400}>
+            <LineChart data={projection}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="year" />
+              <YAxis />
+              <Tooltip formatter={(value: number) => `$${value.toFixed(0)}`} />
+              <Legend />
+              <Line type="monotone" dataKey="value" name="Projected Net Worth" stroke="#8884d8" />
+            </LineChart>
+          </ResponsiveContainer>
         </section>
-        <section className="rounded border p-4 space-y-2">
-          <h2 className="font-medium">Results</h2>
-          <p>
-            <span className="text-gray-600">Target number:</span> $
-            {result.target.toLocaleString(undefined, {
-              maximumFractionDigits: 0,
-            })}
-          </p>
-          <p>
-            <span className="text-gray-600">Years to FI:</span>{' '}
-            {result.yearsToFI}
-          </p>
-          <p>
-            <span className="text-gray-600">Projected balance at FI:</span> $
-            {result.projectedBalance.toLocaleString(undefined, {
-              maximumFractionDigits: 0,
-            })}
-          </p>
-        </section>
-      </div>
+      )}
     </div>
-  )
+  );
 }

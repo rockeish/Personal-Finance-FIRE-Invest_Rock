@@ -1,132 +1,119 @@
 'use client'
 
-import { useFinanceStore } from '@/lib/store'
+import { useState, useEffect } from 'react'
+
+interface UserSettings {
+  user_id: number;
+  currency: string;
+  locale?: string;
+  monthly_income: number;
+  monthly_investment: number;
+  withdrawal_rate: number;
+  enable_rollover: boolean;
+}
 
 export default function SettingsPage() {
-  const {
-    balances,
-    setBalance,
-    exportState,
-    importState,
-    resetAll,
-    settings,
-    setSettings,
-    applyRules,
-  } = useFinanceStore()
+  const [settings, setSettings] = useState<Partial<UserSettings>>({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      setIsLoading(true);
+      const res = await fetch('/api/settings');
+      if (res.status === 401) {
+        window.location.href = '/login';
+        return;
+      }
+      if (res.ok) {
+        const data = await res.json();
+        setSettings(data);
+      }
+      setIsLoading(false);
+    };
+    fetchSettings();
+  }, []);
+
+  const handleSave = async () => {
+    await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings)
+    });
+    alert('Settings saved!');
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
+    setSettings(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : type === 'number' ? parseFloat(value) : value
+    }));
+  };
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Settings</h1>
-      <section className="rounded border p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <label className="block text-sm">
-          Cash
-          <input
-            className="mt-1 w-full border rounded px-2 py-1"
-            type="number"
-            value={balances.cash}
-            onChange={(e) => setBalance('cash', Number(e.target.value))}
-          />
-        </label>
-        <label className="block text-sm">
-          Investments
-          <input
-            className="mt-1 w-full border rounded px-2 py-1"
-            type="number"
-            value={balances.investments}
-            onChange={(e) => setBalance('investments', Number(e.target.value))}
-          />
-        </label>
-        <label className="block text-sm">
-          Debt
-          <input
-            className="mt-1 w-full border rounded px-2 py-1"
-            type="number"
-            value={balances.debt}
-            onChange={(e) => setBalance('debt', Number(e.target.value))}
-          />
-        </label>
-      </section>
+
       <section className="rounded border p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
         <label className="block text-sm">
           Currency
           <input
+            name="currency"
             className="mt-1 w-full border rounded px-2 py-1"
-            value={settings.currency}
-            onChange={(e) => setSettings({ currency: e.target.value })}
+            value={settings.currency || ''}
+            onChange={handleChange}
           />
         </label>
         <label className="block text-sm">
           Monthly Income
           <input
+            name="monthly_income"
             className="mt-1 w-full border rounded px-2 py-1"
             type="number"
-            value={settings.monthlyIncome}
-            onChange={(e) =>
-              setSettings({ monthlyIncome: Number(e.target.value) })
-            }
+            value={settings.monthly_income || 0}
+            onChange={handleChange}
           />
         </label>
         <label className="block text-sm">
-          Monthly Invest Contribution
+          Monthly Investment
           <input
+            name="monthly_investment"
             className="mt-1 w-full border rounded px-2 py-1"
             type="number"
-            value={settings.monthlyInvestContribution}
-            onChange={(e) =>
-              setSettings({ monthlyInvestContribution: Number(e.target.value) })
-            }
+            value={settings.monthly_investment || 0}
+            onChange={handleChange}
           />
         </label>
-        <div className="col-span-full">
-          <button
-            className="rounded border px-3 py-2"
-            onClick={() => applyRules()}
-          >
-            Apply Categorization Rules
-          </button>
-        </div>
+        <label className="block text-sm">
+          Withdrawal Rate (%)
+          <input
+            name="withdrawal_rate"
+            className="mt-1 w-full border rounded px-2 py-1"
+            type="number"
+            value={settings.withdrawal_rate || 4}
+            onChange={handleChange}
+          />
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            name="enable_rollover"
+            type="checkbox"
+            checked={settings.enable_rollover || false}
+            onChange={handleChange}
+          />
+          Enable Rollover
+        </label>
       </section>
-      <section className="rounded border p-4 space-y-3">
-        <h2 className="font-medium">Backup</h2>
-        <div className="flex gap-2">
-          <button
-            className="rounded border px-3 py-2"
-            onClick={() => {
-              const blob = new Blob([exportState()], {
-                type: 'application/json',
-              })
-              const url = URL.createObjectURL(blob)
-              const a = document.createElement('a')
-              a.href = url
-              a.download = 'finance.json'
-              a.click()
-              URL.revokeObjectURL(url)
-            }}
-          >
-            Download JSON
-          </button>
-          <label className="rounded bg-brand px-3 py-2 text-white cursor-pointer">
-            Restore JSON
-            <input
-              type="file"
-              accept="application/json"
-              hidden
-              onChange={async (e) => {
-                const file = e.target.files?.[0]
-                if (!file) return
-                const text = await file.text()
-                importState(text)
-              }}
-            />
-          </label>
-          <button
-            className="rounded border px-3 py-2 text-red-600"
-            onClick={() => resetAll()}
-          >
-            Reset All
-          </button>
-        </div>
-      </section>
+      <button
+        onClick={handleSave}
+        className="rounded bg-brand px-4 py-2 text-white"
+      >
+        Save Settings
+      </button>
     </div>
   )
 }

@@ -1,185 +1,135 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { useFinanceStore } from '@/lib/store'
+import { useState, useEffect } from 'react';
+
+interface Investment {
+  id: number;
+  symbol: string;
+  shares: number;
+  purchase_price: number;
+}
 
 export default function InvestmentsPage() {
-  const {
-    holdings,
-    setHolding,
-    removeHolding,
-    targetAllocation,
-    setTargetAllocation,
-    settings,
-  } = useFinanceStore()
-  const [symbol, setSymbol] = useState('')
-  const [shares, setShares] = useState<number>(0)
-  const [priceMap, setPriceMap] = useState<Record<string, number>>({})
+  const [investments, setInvestments] = useState<Investment[]>([]);
+  const [quotes, setQuotes] = useState<Record<string, number>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [editingInvestment, setEditingInvestment] = useState<Investment | null>(null);
+  const [formData, setFormData] = useState({ symbol: '', shares: '', purchase_price: '', purchase_date: '' });
 
   useEffect(() => {
-    async function loadPrices() {
-      const symbols = Object.keys(holdings)
-      if (symbols.length === 0) return
-      const params = new URLSearchParams({ s: symbols.join(',') })
-      const res = await fetch(`/api/quotes?${params.toString()}`)
-      if (!res.ok) return
-      const data = (await res.json()) as Record<string, number>
-      setPriceMap(data)
-    }
-    loadPrices()
-  }, [holdings])
-
-  const totalValue = Object.entries(holdings).reduce(
-    (sum, [sym, sh]) => sum + sh * (priceMap[sym] ?? 0),
-    0
-  )
-
-  const drift = useMemo(() => {
-    const allocs: Array<{
-      sym: string
-      currentPct: number
-      targetPct: number
-      value: number
-      price: number
-    }> = []
-    for (const [sym, sh] of Object.entries(holdings)) {
-      const price = priceMap[sym] ?? 0
-      const value = sh * price
-      const currentPct = totalValue ? (value / totalValue) * 100 : 0
-      const targetPct = targetAllocation[sym] ?? 0
-      allocs.push({ sym, currentPct, targetPct, value, price })
-    }
-    return allocs.sort(
-      (a, b) => b.targetPct - b.currentPct - (a.targetPct - a.currentPct)
-    )
-  }, [holdings, priceMap, targetAllocation, totalValue])
-
-  const suggestions = useMemo(() => {
-    let budget = settings.monthlyInvestContribution || 0
-    const plan: Array<{ sym: string; shares: number; cost: number }> = []
-    if (budget <= 0) return plan
-    // Greedy: allocate funds to the most underweight assets first
-    const under = drift.filter((d) => d.targetPct > d.currentPct && d.price > 0)
-    for (const d of under) {
-      if (budget <= 0) break
-      const desiredValue = (d.targetPct / 100) * (totalValue + budget)
-      const need = Math.max(0, desiredValue - d.value)
-      const buyCost = Math.min(budget, need)
-      const shares = Math.floor(buyCost / d.price)
-      if (shares > 0) {
-        const cost = shares * d.price
-        plan.push({ sym: d.sym, shares, cost })
-        budget -= cost
+    const fetchInvestments = async () => {
+      setIsLoading(true);
+      const res = await fetch('/api/data/initial');
+      if (res.ok) {
+        const data = await res.json();
+        setInvestments(data.investments);
+        if (data.investments.length > 0) {
+          const symbols = data.investments.map(i => i.symbol).join(',');
+          const quotesRes = await fetch(`/api/quotes?s=${symbols}`);
+          if (quotesRes.ok) {
+            const quotesData = await quotesRes.json();
+            setQuotes(quotesData);
+          }
+        }
       }
-    }
-    return plan
-  }, [drift, settings.monthlyInvestContribution, totalValue])
+      setIsLoading(false);
+    };
+    fetchInvestments();
+  }, []);
+
+  if (isLoading) {
+    return <div>Loading investments...</div>;
+  }
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Investments</h1>
-      <div className="flex gap-2">
-        <input
-          className="border rounded px-2 py-1 w-32"
-          placeholder="Symbol"
-          value={symbol}
-          onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-        />
-        <input
-          className="border rounded px-2 py-1 w-32"
-          type="number"
-          placeholder="Shares"
-          value={shares}
-          onChange={(e) => setShares(Number(e.target.value))}
-        />
-        <button
-          className="rounded bg-brand px-3 py-2 text-white"
-          onClick={() => {
-            if (!symbol || shares <= 0) return
-            setHolding(symbol, shares)
-            setSymbol('')
-            setShares(0)
-          }}
-        >
-          Add/Update
-        </button>
-      </div>
-      <section className="rounded border p-4">
-        <h2 className="font-medium mb-2">Target Allocation (%)</h2>
-        <div className="flex flex-wrap gap-2">
-          {Object.keys(holdings).map((sym) => (
-            <label key={sym} className="text-sm">
-              {sym}
-              <input
-                className="ml-2 border rounded px-2 py-1 w-20 text-right"
-                type="number"
-                value={targetAllocation[sym] ?? 0}
-                onChange={(e) =>
-                  setTargetAllocation(sym, Number(e.target.value))
-                }
-              />
-            </label>
-          ))}
-        </div>
+
+      <section className="rounded-lg border p-4">
+        <h2 className="font-medium mb-2">{editingInvestment ? 'Edit Investment' : 'Add New Investment'}</h2>
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          const url = editingInvestment ? `/api/investments/${editingInvestment.id}` : '/api/investments';
+          const method = editingInvestment ? 'PUT' : 'POST';
+
+          const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData),
+          });
+
+          if (res.ok) {
+            const updatedInvestment = await res.json();
+            if (editingInvestment) {
+              setInvestments(investments.map(i => i.id === updatedInvestment.id ? updatedInvestment : i));
+            } else {
+              setInvestments([...investments, updatedInvestment]);
+            }
+            setEditingInvestment(null);
+            setFormData({ symbol: '', shares: '', purchase_price: '', purchase_date: '' });
+          }
+        }} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <input name="symbol" placeholder="Symbol (e.g., VTI)" value={formData.symbol} onChange={(e) => setFormData({...formData, symbol: e.target.value})} className="border rounded px-2 py-1" required />
+          <input name="shares" type="number" placeholder="Shares" value={formData.shares} onChange={(e) => setFormData({...formData, shares: e.target.value})} className="border rounded px-2 py-1" required />
+          <input name="purchase_price" type="number" placeholder="Purchase Price" value={formData.purchase_price} onChange={(e) => setFormData({...formData, purchase_price: e.target.value})} className="border rounded px-2 py-1" />
+          <input name="purchase_date" type="date" value={formData.purchase_date} onChange={(e) => setFormData({...formData, purchase_date: e.target.value})} className="border rounded px-2 py-1" />
+          <div className="flex gap-2">
+            <button type="submit" className="rounded bg-brand px-3 py-2 text-white">{editingInvestment ? 'Update' : 'Add'}</button>
+            {editingInvestment && (
+              <button type="button" onClick={() => {
+                setEditingInvestment(null);
+                setFormData({ symbol: '', shares: '', purchase_price: '', purchase_date: '' });
+              }} className="rounded border px-3 py-2">Cancel</button>
+            )}
+          </div>
+        </form>
       </section>
-      <table className="w-full text-sm">
-        <thead className="text-left">
-          <tr className="border-b">
-            <th className="py-2">Symbol</th>
-            <th className="text-right">Shares</th>
-            <th className="text-right">Price</th>
-            <th className="text-right">Value</th>
-            <th className="text-right">Alloc %</th>
-            <th className="text-right">Target %</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {Object.entries(holdings).map(([sym, sh]) => {
-            const price = priceMap[sym] ?? 0
-            const value = sh * price
-            const alloc = totalValue ? (value / totalValue) * 100 : 0
-            const target = targetAllocation[sym] ?? 0
-            return (
-              <tr key={sym} className="border-b">
-                <td className="py-1">{sym}</td>
-                <td className="text-right">{sh.toLocaleString()}</td>
-                <td className="text-right">${price.toFixed(2)}</td>
-                <td className="text-right">
-                  $
-                  {value.toLocaleString(undefined, {
-                    maximumFractionDigits: 2,
-                  })}
-                </td>
-                <td className="text-right">{alloc.toFixed(1)}%</td>
-                <td className="text-right">{target.toFixed(0)}%</td>
-                <td className="text-right">
-                  <button
-                    className="text-red-600"
-                    onClick={() => removeHolding(sym)}
-                  >
-                    Remove
-                  </button>
+
+      <section className="rounded-lg border p-4">
+        <h2 className="font-medium mb-2">Your Portfolio</h2>
+        <table className="w-full text-sm">
+          <thead className="text-left">
+            <tr className="border-b">
+              <th className="py-2">Symbol</th>
+              <th>Shares</th>
+              <th>Purchase Price</th>
+              <th>Live Price</th>
+              <th>Market Value</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {investments.map((inv) => (
+              <tr key={inv.id} className="border-b hover:bg-gray-50">
+                <td className="py-1">{inv.symbol}</td>
+                <td>{inv.shares}</td>
+                <td>${inv.purchase_price?.toFixed(2)}</td>
+                <td>${quotes[inv.symbol]?.toFixed(2) || 'N/A'}</td>
+                <td>${(inv.shares * (quotes[inv.symbol] || 0)).toFixed(2)}</td>
+                <td>
+                  <button onClick={() => {
+                    setEditingInvestment(inv);
+                    setFormData({
+                      symbol: inv.symbol,
+                      shares: inv.shares.toString(),
+                      purchase_price: inv.purchase_price.toString(),
+                      purchase_date: inv.purchase_date ? new Date(inv.purchase_date).toISOString().slice(0, 10) : ''
+                    });
+                  }} className="text-xs text-blue-600">Edit</button>
+                  <button onClick={async () => {
+                    if (confirm('Are you sure you want to delete this investment?')) {
+                      const res = await fetch(`/api/investments/${inv.id}`, { method: 'DELETE' });
+                      if (res.ok) {
+                        setInvestments(investments.filter(i => i.id !== inv.id));
+                      }
+                    }
+                  }} className="text-xs text-red-600 ml-2">Delete</button>
                 </td>
               </tr>
-            )
-          })}
-        </tbody>
-      </table>
-      {suggestions.length > 0 && (
-        <section className="rounded border p-4">
-          <h2 className="font-medium mb-2">
-            Suggested buys (budget ${settings.monthlyInvestContribution})
-          </h2>
-          <ul className="text-sm text-gray-600">
-            {suggestions.map((s) => (
-              <li key={s.sym}>
-                {s.sym}: buy {s.shares} shares (~${s.cost.toFixed(2)})
-              </li>
             ))}
-          </ul>
-        </section>
-      )}
+          </tbody>
+        </table>
+      </section>
     </div>
-  )
+  );
 }
