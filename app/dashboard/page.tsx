@@ -1,37 +1,86 @@
 'use client'
 
-import { useMemo } from 'react'
-import { useFinanceStore } from '@/lib/store'
+import { useState, useEffect } from 'react'
 import NetWorthDashboard from '@/components/NetWorthDashboard'
 import MonthlySpendingChart from '@/components/MonthlySpendingChart'
 import MonthPicker from '@/components/MonthPicker'
+import CashFlowChart from '@/components/CashFlowChart'
+
+interface Account {
+  id: number;
+  user_id: number;
+  name: string;
+  type: 'cash' | 'investments' | 'debt';
+  balance: number;
+  created_at: string;
+}
+
+interface InitialData {
+  accounts: Account[];
+  kpis: {
+    totalSpent: number;
+  }
+}
 
 export default function DashboardPage() {
-  const { balances, currentMonth, getCategoryActuals, settings } =
-    useFinanceStore()
-  const kpis = useMemo(() => {
-    const actuals = getCategoryActuals(currentMonth)
-    const totalSpent = Object.values(actuals).reduce((s, v) => s + v, 0)
-    const savings = Math.max(
-      0,
-      (settings.monthlyIncome || 0) -
-        totalSpent -
-        (settings.monthlyInvestContribution || 0)
-    )
-    return { totalSpent, savings }
-  }, [
-    currentMonth,
-    getCategoryActuals,
-    settings.monthlyIncome,
-    settings.monthlyInvestContribution,
-  ])
+  const [balances, setBalances] = useState({ cash: 0, investments: 0, debt: 0 });
+  const [kpis, setKpis] = useState({ totalSpent: 0 });
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch('/api/data/initial');
+
+        if (response.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+
+        if (response.ok) {
+          const data: InitialData = await response.json();
+          const cash = data.accounts.filter(a => a.type === 'cash').reduce((sum, a) => sum + parseFloat(a.balance as any), 0);
+          const investments = data.accounts.filter(a => a.type === 'investments').reduce((sum, a) => sum + parseFloat(a.balance as any), 0);
+          const debt = data.accounts.filter(a => a.type === 'debt').reduce((sum, a) => sum + parseFloat(a.balance as any), 0);
+          setBalances({ cash, investments, debt });
+          setKpis(data.kpis);
+        } else {
+          console.error("Failed to fetch initial data");
+        }
+      } catch (error) {
+        console.error('Failed to fetch initial data', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <div className="ml-auto">
-          <MonthPicker />
+        <div className="ml-auto flex items-center gap-4">
+          <MonthPicker currentMonth={currentMonth} setCurrentMonth={setCurrentMonth} />
+          <button
+            onClick={async () => {
+              await fetch('/api/auth/logout', { method: 'POST' });
+              window.location.href = '/login';
+            }}
+            className="rounded border px-3 py-2 text-sm"
+          >
+            Logout
+          </button>
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -55,12 +104,16 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <section className="rounded-lg border p-4">
           <h2 className="font-medium mb-2">Monthly Spending</h2>
-          <MonthlySpendingChart />
+          <MonthlySpendingChart currentMonth={currentMonth} />
         </section>
         <section className="rounded-lg border p-4">
           <NetWorthDashboard />
         </section>
       </div>
+      <section className="rounded-lg border p-4">
+        <h2 className="font-medium mb-2">Cash Flow (Last 6 Months)</h2>
+        <CashFlowChart />
+      </section>
     </div>
   )
 }

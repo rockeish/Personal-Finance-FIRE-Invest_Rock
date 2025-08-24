@@ -1,42 +1,51 @@
 'use client'
 
-import {
-  Bar,
-  BarChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
-import { useFinanceStore } from '@/lib/store'
-import { format } from 'date-fns'
+import { useState, useEffect } from 'react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
-export default function MonthlySpendingChart() {
-  const { monthlySpending } = useFinanceStore()
-  const data = monthlySpending.map((m) => ({
-    label: format(m.month, 'MMM yy'),
-    amount: m.amount,
-  }))
+interface MonthlySpendingChartProps {
+  currentMonth: string;
+}
+
+interface SpendingData {
+  category: string;
+  amount: number;
+}
+
+export default function MonthlySpendingChart({ currentMonth }: MonthlySpendingChartProps) {
+  const [data, setData] = useState<SpendingData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      const res = await fetch(`/api/charts/monthly-spending?month=${currentMonth}`);
+      if (res.ok) {
+        const spendingData = await res.json();
+        setData(spendingData);
+      }
+      setIsLoading(false);
+    };
+    fetchData();
+  }, [currentMonth]);
+
+  if (isLoading) {
+    return <div>Loading chart...</div>;
+  }
+
+  if (data.length === 0) {
+    return <div>No spending data for this month.</div>;
+  }
+
   return (
-    <div className="h-64 w-full">
-      <ResponsiveContainer>
-        <BarChart
-          data={data}
-          margin={{ top: 10, right: 20, bottom: 0, left: 0 }}
-        >
-          <XAxis
-            dataKey="label"
-            interval={Math.max(0, Math.floor(data.length / 6) - 1)}
-            tick={{ fontSize: 12 }}
-          />
-          <YAxis tick={{ fontSize: 12 }} width={70} />
-          <Tooltip
-            formatter={(v: number) => v.toLocaleString()}
-            labelFormatter={(l) => l}
-          />
-          <Bar dataKey="amount" fill="#94a3b8" />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  )
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 60, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis type="number" />
+        <YAxis dataKey="category" type="category" width={80} />
+        <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+        <Bar dataKey="amount" fill="#8884d8" />
+      </BarChart>
+    </ResponsiveContainer>
+  );
 }
